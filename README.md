@@ -4,9 +4,10 @@ A Laravel package for building reusable, Livewire-first data tables styled for F
 
 ## Requirements
 
-- PHP 8.2+
-- Laravel 11+
-- Livewire 4.0+
+- PHP 8.1+
+- Laravel 10+
+- Livewire 3.5.19+ or 4.0+
+- Tailwind CSS 4.0+
 
 ## Installation
 
