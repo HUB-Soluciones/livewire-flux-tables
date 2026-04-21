@@ -1,0 +1,26 @@
+<?php
+
+namespace {{ namespace }};
+
+{{ uses }}
+
+class {{ class }} extends FluxTableComponent
+{
+{{ table_view_property }}    public int $perPage = {{ paginate }};
+
+{{ model_comment }}    public function builder()
+    {
+{{ builder }}
+    }
+
+    public function columns(): array
+    {
+{{ columns }}
+    }
+
+    public function filters(): array
+    {
+{{ filters }}
+    }
+{{ filter_methods }}
+}

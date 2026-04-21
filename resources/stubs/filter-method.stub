@@ -1,0 +1,4 @@
+public function apply{{ studly_key }}Filter($query, $value): void
+{
+    // Customize the query for the {{ key }} filter.
+}

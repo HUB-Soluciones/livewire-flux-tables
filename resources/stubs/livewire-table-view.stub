@@ -1,0 +1,9 @@
+<div>
+    @include('livewire-flux-tables::livewire.table-component', [
+        'component' => $this,
+        'columns' => $this->resolvedColumns(),
+        'filters' => $this->resolvedFilters(),
+        'rows' => $this->rows(),
+        'sticky' => $this->stickyMetadata(),
+    ])
+</div>
