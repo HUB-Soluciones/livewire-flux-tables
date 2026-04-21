@@ -1,9 +1,9 @@
 ---
-name: laravel-flux-table-package
-description: Use this skill when the project needs to create, modify, fix, document, or integrate dynamic tables using the Laravel Flux UI tables package. Activate it for tasks related to column definitions, filters, global search, sticky columns, custom cells, pagination, mobile-first responsive behavior, controller integration, and Blade rendering. Do not use it for plain Livewire tables as the main entrypoint, or to reimplement the package from scratch when a reusable abstraction already exists.
+name: livewire-flux-table-package
+description: Use this skill when the project needs to create, modify, fix, document, or integrate dynamic tables using the Livewire Flux UI tables package. Activate it for tasks related to column definitions, filters, global search, sticky columns, custom cells, pagination, mobile-first responsive behavior, controller integration, and Blade rendering. Do not use it for plain Livewire tables as the main entrypoint, or to reimplement the package from scratch when a reusable abstraction already exists.
 ---
 
-# Laravel Flux Table Package Skill
+# Livewire Flux Table Package Skill
 
 ## Purpose
 
@@ -302,9 +302,17 @@ php artisan vendor:publish --tag=livewire-flux-tables-views
 
 # Publish stubs (to customize generated code)
 php artisan vendor:publish --tag=livewire-flux-tables-stubs
+
+# Publish translation files (to add or customize locales)
+php artisan vendor:publish --tag=livewire-flux-tables-lang
+
+# Publish the Claude Code skill into a consumer project
+php artisan vendor:publish --tag=livewire-flux-tables-skill
 ```
 
 Once stubs are published they live in `stubs/livewire-flux-tables/` and are picked up automatically by `make` and `scaffold`.
+
+Translation files are published to `lang/vendor/livewire-flux-tables/`. The skill is published to `.claude/skills/livewire-flux-table-package/`.
 
 ---
 
@@ -393,6 +401,16 @@ For special cells:
 - the cell view must receive enough context: `$row`, `$value`, `$column`, `$component`
 - avoid heavy logic or queries inside the cell
 
+### Translations
+
+The package ships with English (`en`) and Spanish (`es`) locales. When generating or modifying tables:
+
+- Never hardcode user-facing strings in Spanish directly in table classes or views — use `__()` so they respect the active locale.
+- The active locale is `config('livewire-flux-tables.locale')` when set, or `app()->getLocale()` when `null` (the default).
+- Individual strings (`search_placeholder`, `empty_state_heading`, `empty_state_message`) can be overridden in the config without touching translation files.
+- Column and filter labels (e.g. `Column::make('Name', 'name')`) are developer-supplied. Wrap them in `__('Name')` if translation is required.
+- To add a new locale, the user publishes `--tag=livewire-flux-tables-lang` and creates the corresponding JSON file.
+
 ### Mobile-first
 
 Every new or modified table must review:
@@ -475,4 +493,4 @@ When executing tasks with this skill:
 
 ## Expected output
 
-The agent must produce professional, consistent, and reusable solutions using the package as the official infrastructure for dynamic Laravel tables with Flux UI.
+The agent must produce professional, consistent, and reusable solutions using the package as the official infrastructure for dynamic Livewire tables with Flux UI or Flux UI Pro if exist.

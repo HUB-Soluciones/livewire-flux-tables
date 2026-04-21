@@ -11,7 +11,7 @@
                         wire:model.live="tableFilters.{{ $filter->key() }}"
                         class="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 shadow-sm outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
                     >
-                        <option value="">{{ $filter->placeholderValue() ?: 'Todos' }}</option>
+                        <option value="">{{ $filter->placeholderValue() ?: __('All') }}</option>
 
                         @foreach ($filter->optionsList() as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>

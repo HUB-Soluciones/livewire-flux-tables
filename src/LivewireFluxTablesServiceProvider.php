@@ -19,6 +19,11 @@ class LivewireFluxTablesServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'livewire-flux-tables');
+        $this->loadJsonTranslationsFrom(__DIR__.'/../lang');
+
+        $this->publishes([
+            __DIR__.'/../lang' => lang_path('vendor/livewire-flux-tables'),
+        ], 'livewire-flux-tables-lang');
 
         $this->publishes([
             __DIR__.'/../config/livewire-flux-tables.php' => config_path('livewire-flux-tables.php'),
@@ -33,7 +38,7 @@ class LivewireFluxTablesServiceProvider extends ServiceProvider
         ], 'livewire-flux-tables-stubs');
 
         $this->publishes([
-            __DIR__.'/../.claude/skills/laravel-flux-table-package' => base_path('.claude/skills/laravel-flux-table-package'),
+            __DIR__.'/../.claude/skills/livewire-flux-table-package' => base_path('.claude/skills/livewire-flux-table-package'),
         ], 'livewire-flux-tables-skill');
 
         if ($this->app->runningInConsole()) {

@@ -242,6 +242,48 @@ protected function usesQueryStringPersistence(): bool
 }
 ```
 
+## Translations
+
+The package ships with English and Spanish translations. By default it uses your Laravel app's locale (`app()->getLocale()`).
+
+**Publish the language files** to customize or add new locales:
+
+```bash
+php artisan vendor:publish --tag=livewire-flux-tables-lang
+```
+
+Files are published to `lang/vendor/livewire-flux-tables/`.
+
+**Force a specific locale** regardless of the app locale:
+
+```php
+// config/livewire-flux-tables.php
+'locale' => 'es', // 'en', 'es', or null (default — uses app locale)
+```
+
+**Add a new locale** by creating `lang/vendor/livewire-flux-tables/{locale}.json` using the English keys:
+
+```json
+{
+    "Search records...": "Rechercher...",
+    "Search": "Rechercher",
+    "Records per page": "Enregistrements par page",
+    "All": "Tous",
+    "No results": "Aucun résultat",
+    "No records match the current criteria.": "Aucun enregistrement ne correspond aux critères actuels."
+}
+```
+
+**Override individual strings** without touching translation files — set the value directly in the config:
+
+```php
+'search_placeholder' => 'Type to filter...',
+'empty_state_heading' => 'Nothing here',
+'empty_state_message' => 'Try adjusting your filters.',
+```
+
+> Column labels and filter labels (e.g. `Column::make('Name', 'name')`) are developer-supplied. Pass `__('Name')` directly if you want them to be translatable.
+
 ## Testing
 
 ```bash

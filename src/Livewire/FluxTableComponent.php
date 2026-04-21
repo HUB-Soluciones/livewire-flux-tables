@@ -261,6 +261,13 @@ abstract class FluxTableComponent extends Component
             : $this->defaultPerPage();
     }
 
+    protected function translate(string $key, array $replace = []): string
+    {
+        $locale = config('livewire-flux-tables.locale') ?: app()->getLocale();
+
+        return trans($key, $replace, $locale);
+    }
+
     protected function defaultPerPage(): int
     {
         return (int) config('livewire-flux-tables.default_per_page', 15);
@@ -278,7 +285,8 @@ abstract class FluxTableComponent extends Component
 
     protected function searchPlaceholderText(): string
     {
-        return (string) config('livewire-flux-tables.search_placeholder', 'Buscar registros...');
+        return (string) (config('livewire-flux-tables.search_placeholder')
+            ?? $this->translate('Search records...'));
     }
 
     protected function paginationMethod(): string
@@ -288,12 +296,14 @@ abstract class FluxTableComponent extends Component
 
     protected function emptyHeading(): string
     {
-        return (string) config('livewire-flux-tables.empty_state_heading', 'Sin resultados');
+        return (string) (config('livewire-flux-tables.empty_state_heading')
+            ?? $this->translate('No results'));
     }
 
     protected function emptyMessage(): string
     {
-        return (string) config('livewire-flux-tables.empty_state_message', 'No hay registros que coincidan con los criterios actuales.');
+        return (string) (config('livewire-flux-tables.empty_state_message')
+            ?? $this->translate('No records match the current criteria.'));
     }
 
     protected function defaultSort(): ?string

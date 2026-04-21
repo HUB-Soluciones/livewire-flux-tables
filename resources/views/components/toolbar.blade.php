@@ -2,7 +2,7 @@
     <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div class="w-full xl:max-w-md">
             <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
-                Buscar
+                {{ __('Search') }}
             </label>
 
             <input
@@ -21,7 +21,7 @@
 
             <div class="w-full sm:w-48">
                 <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
-                    Registros por página
+                    {{ __('Records per page') }}
                 </label>
 
                 <select
