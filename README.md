@@ -22,6 +22,22 @@ php artisan vendor:publish --tag=livewire-flux-tables-views
 php artisan vendor:publish --tag=livewire-flux-tables-stubs
 ```
 
+## Claude Code Skill
+
+If you use [Claude Code](https://claude.ai/code), you can publish the skill for this package into your project so Claude understands how to work with `livewire-flux-tables` correctly:
+
+```bash
+php artisan vendor:publish --tag=livewire-flux-tables-skill
+```
+
+This copies `.claude/skills/laravel-flux-table-package/SKILL.md` into your project root. Claude Code picks it up automatically and uses it to guide column definitions, filters, sticky columns, custom cells, Artisan commands, and more.
+
+To update the skill after upgrading the package:
+
+```bash
+php artisan vendor:publish --tag=livewire-flux-tables-skill --force
+```
+
 ## Quick Start
 
 Generate a table component using the Artisan command:

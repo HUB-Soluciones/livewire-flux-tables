@@ -32,6 +32,10 @@ class LivewireFluxTablesServiceProvider extends ServiceProvider
             __DIR__.'/../resources/stubs' => base_path(config('livewire-flux-tables.stubs_path', 'stubs/livewire-flux-tables')),
         ], 'livewire-flux-tables-stubs');
 
+        $this->publishes([
+            __DIR__.'/../.claude/skills/laravel-flux-table-package' => base_path('.claude/skills/laravel-flux-table-package'),
+        ], 'livewire-flux-tables-skill');
+
         if ($this->app->runningInConsole()) {
             $this->commands([
                 MakeFluxTableCommand::class,
