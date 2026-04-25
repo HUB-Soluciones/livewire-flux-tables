@@ -30,6 +30,24 @@ class MakeFluxTableCommandTest extends TestCase
         $this->assertFileExists($cellViewPath);
     }
 
+    public function test_make_command_with_selection_flag_includes_selection_column(): void
+    {
+        $this->artisan('livewire-flux-tables:make', [
+            'name' => 'OrdersTable',
+            '--path' => 'Orders',
+            '--with-selection' => true,
+            '--force' => true,
+        ])->assertExitCode(0);
+
+        $componentPath = app_path('Livewire/Orders/OrdersTable.php');
+        $contents = \Illuminate\Support\Facades\File::get($componentPath);
+
+        $this->assertStringContainsString('use HubSoluciones\LivewireFluxTables\Columns\SelectionColumn;', $contents);
+        $this->assertStringContainsString('SelectionColumn::make()', $contents);
+        $this->assertStringContainsString('deleteSelected', $contents);
+        $this->assertStringContainsString('allFilteredKeys', $contents);
+    }
+
     public function test_make_command_generates_filter_methods(): void
     {
         $this->artisan('livewire-flux-tables:make', [

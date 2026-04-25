@@ -19,6 +19,44 @@ class QueryPipeline
     ) {
     }
 
+    public function keys(mixed $source, FluxTableComponent $component): array
+    {
+        if ($source instanceof PaginatorContract) {
+            $items = method_exists($source, 'items') ? $source->items() : iterator_to_array($source);
+
+            return collect($items)
+                ->map(fn ($row) => (string) $component->resolveRowKey($row))
+                ->filter()
+                ->values()
+                ->all();
+        }
+
+        $columns = $component->resolvedColumns();
+        $filters = $component->resolvedFilters();
+        $state = $component->tableState();
+        $keyField = $component->resolveRowKeyField();
+
+        if ($source instanceof EloquentBuilder || $source instanceof QueryBuilder) {
+            $query = clone $source;
+            $query = $this->searchEngine->apply($query, $state->search, $columns);
+            $query = $this->filterManager->apply($query, $filters, $state->filters, $component);
+            $query = $this->sortManager->apply($query, $state->sort, $state->direction, $columns);
+
+            return $query->pluck($keyField)->map(fn ($v) => (string) $v)->all();
+        }
+
+        $collection = $source instanceof Collection ? $source->values() : collect($source)->values();
+        $collection = $this->searchEngine->apply($collection, $state->search, $columns);
+        $collection = $this->filterManager->apply($collection, $filters, $state->filters, $component);
+        $collection = $this->sortManager->apply($collection, $state->sort, $state->direction, $columns);
+
+        return $collection
+            ->map(fn ($row) => (string) $component->resolveRowKey($row))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
     public function process(mixed $source, FluxTableComponent $component): mixed
     {
         if ($source instanceof PaginatorContract) {

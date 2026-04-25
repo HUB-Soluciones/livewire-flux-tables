@@ -211,6 +211,41 @@ public function applyCreatedAtFilter($query, $value): void
 
 **3. Default behavior** defined in the filter class itself.
 
+## Selection & Bulk Actions
+
+Add `SelectionColumn::make()` as the first column to enable row selection with a tri-state header dropdown and a bulk-actions toolbar.
+
+```php
+use HubSoluciones\LivewireFluxTables\Columns\SelectionColumn;
+
+public function columns(): array
+{
+    return [
+        SelectionColumn::make()->bulkActions([
+            'deleteSelected' => 'Delete selected',
+            'exportSelected' => 'Export selected',
+        ]),
+        Column::make('Name', 'name')->sortable(),
+        // ...
+    ];
+}
+
+public function deleteSelected(): void
+{
+    // $selectAllRecords=true means all filtered records are selected (not just the page).
+    // Use allFilteredKeys() to get all matching IDs without pagination.
+    $ids = $this->selectAllRecords ? $this->allFilteredKeys() : $this->selectedKeys;
+    User::whereIn('id', $ids)->delete();
+    $this->clearSelection();
+}
+```
+
+The header checkbox opens a dropdown with "Select page (N)", "Select all M records", and "Clear selection". Rows can be conditionally disabled with `->selectableWhen(fn ($row) => ...)`.
+
+**Defaults** (overridable): sticky-left, width 3rem, centered, not hideable. Use `->notSticky()` to remove the sticky behavior.
+
+**Generate with:** `php artisan livewire-flux-tables:make MyTable --with-selection`
+
 ## Configuration
 
 After publishing, edit `config/livewire-flux-tables.php`:

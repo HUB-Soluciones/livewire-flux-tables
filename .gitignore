@@ -4,3 +4,5 @@ composer.lock
 .env
 *.log
 CLAUDE.md
+workbench/database/database.sqlite
+workbench/bootstrap/

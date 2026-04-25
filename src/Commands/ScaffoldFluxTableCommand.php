@@ -29,6 +29,7 @@ class ScaffoldFluxTableCommand extends Command
             '--with-filters' => true,
             '--with-filter-methods' => true,
             '--with-cell-views' => true,
+            '--with-selection' => true,
             '--paginate' => $this->option('paginate'),
             '--stub' => $this->option('stub'),
         ]);

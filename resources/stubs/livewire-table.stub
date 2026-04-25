@@ -22,5 +22,5 @@ class {{ class }} extends FluxTableComponent
     {
 {{ filters }}
     }
-{{ filter_methods }}
+{{ filter_methods }}{{ selection_method }}
 }

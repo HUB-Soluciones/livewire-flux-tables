@@ -19,6 +19,7 @@ class MakeFluxTableCommand extends Command
         {--with-filters : Include starter filters}
         {--with-filter-methods : Include starter filter methods}
         {--with-cell-views : Include a sample cell view}
+        {--with-selection : Include a selection column with bulk actions}
         {--paginate=15 : Default per page value}
         {--stub=default : Stub set name}';
 
@@ -92,11 +93,13 @@ class MakeFluxTableCommand extends Command
         $withFilters = (bool) ($this->option('with-filters') || $this->option('with-filter-methods'));
         $withFilterMethods = (bool) $this->option('with-filter-methods');
         $withCellViews = (bool) $this->option('with-cell-views');
+        $withSelection = (bool) $this->option('with-selection');
         $generateView = (bool) $this->option('view');
 
-        $columns = $this->buildColumns($withCellViews, $cellViewName);
+        $columns = $this->buildColumns($withCellViews, $cellViewName, $withSelection);
         $filters = $withFilters ? $this->buildFilters() : "        return [];";
         $filterMethods = $withFilterMethods ? $this->buildFilterMethods() : '';
+        $selectionMethod = $withSelection ? $this->buildSelectionMethod() : '';
 
         $uses = [
             'HubSoluciones\\LivewireFluxTables\\Columns\\Column',
@@ -113,6 +116,10 @@ class MakeFluxTableCommand extends Command
             $uses[] = 'HubSoluciones\\LivewireFluxTables\\Filters\\TextFilter';
         }
 
+        if ($withSelection) {
+            $uses[] = 'HubSoluciones\\LivewireFluxTables\\Columns\\SelectionColumn';
+        }
+
         $builder = $modelClass
             ? '        return '.$modelBaseName."::query();"
             : "        return collect();";
@@ -126,6 +133,7 @@ class MakeFluxTableCommand extends Command
             'columns' => $columns,
             'filters' => $filters,
             'filter_methods' => $filterMethods,
+            'selection_method' => $selectionMethod,
             'table_view_property' => $generateView ? "    protected ?string \$tableView = '".$viewName."';\n" : '',
             'paginate' => (string) ((int) $this->option('paginate') ?: 15),
             'view_name' => $viewName,
@@ -164,19 +172,36 @@ class MakeFluxTableCommand extends Command
         $this->files->put($path, $contents);
     }
 
-    protected function buildColumns(bool $withCellViews, string $cellViewName): string
+    protected function buildColumns(bool $withCellViews, string $cellViewName, bool $withSelection = false): string
     {
+        $selectionColumn = $withSelection
+            ? "\n            SelectionColumn::make()->bulkActions(['deleteSelected' => 'Eliminar seleccionados']),"
+            : '';
+
         $statusColumn = $withCellViews
             ? "\n            Column::make('Estatus', 'status')->view('".str_replace('/', '.', $cellViewName)."')->mobileHidden(),"
             : '';
 
         return <<<PHP
-        return [
+        return [{$selectionColumn}
             Column::make('ID', 'id')->sortable(),
             Column::make('Nombre', 'name')->searchable()->sortable()->sticky()->width('14rem')->stackOnMobile(),
             Column::make('Email', 'email')->searchable()->sortable(),
             Column::make('Creado', 'created_at')->sortable()->mobileHidden(),{$statusColumn}
         ];
+PHP;
+    }
+
+    protected function buildSelectionMethod(): string
+    {
+        return <<<'PHP'
+
+    public function deleteSelected(): void
+    {
+        $ids = $this->selectAllRecords ? $this->allFilteredKeys() : $this->selectedKeys;
+        // TODO: actuar sobre $ids
+        $this->clearSelection();
+    }
 PHP;
     }
 

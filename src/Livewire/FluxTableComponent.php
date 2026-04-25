@@ -3,6 +3,7 @@
 namespace HubSoluciones\LivewireFluxTables\Livewire;
 
 use HubSoluciones\LivewireFluxTables\Columns\Column;
+use HubSoluciones\LivewireFluxTables\Columns\SelectionColumn;
 use HubSoluciones\LivewireFluxTables\Filters\Filter;
 use HubSoluciones\LivewireFluxTables\Query\QueryPipeline;
 use HubSoluciones\LivewireFluxTables\Rendering\CellRenderer;
@@ -30,6 +31,14 @@ abstract class FluxTableComponent extends Component
     public int $perPage = 15;
 
     public array $tableFilters = [];
+
+    public array $hiddenColumns = [];
+
+    public array $selectedKeys = [];
+
+    public bool $showFilters = false;
+
+    public bool $selectAllRecords = false;
 
     protected ?string $tableView = null;
 
@@ -125,12 +134,178 @@ abstract class FluxTableComponent extends Component
         $this->resetPage();
     }
 
+    public function toggleFilters(): void
+    {
+        $this->showFilters = ! $this->showFilters;
+    }
+
+    public function toggleColumn(string $field): void
+    {
+        if (in_array($field, $this->hiddenColumns, true)) {
+            $this->hiddenColumns = array_values(array_filter(
+                $this->hiddenColumns,
+                fn ($f) => $f !== $field
+            ));
+        } else {
+            $this->hiddenColumns[] = $field;
+        }
+    }
+
+    public function toggleRow(mixed $key): void
+    {
+        $key = (string) $key;
+
+        if (in_array($key, $this->selectedKeys, true)) {
+            $this->selectedKeys = array_values(array_filter(
+                $this->selectedKeys,
+                fn ($k) => $k !== $key
+            ));
+        } else {
+            $this->selectedKeys[] = $key;
+        }
+
+        $this->selectAllRecords = false;
+    }
+
+    public function togglePageSelection(): void
+    {
+        $pageKeys = $this->getPageKeys();
+        $allSelected = ! empty($pageKeys) && empty(array_diff($pageKeys, $this->selectedKeys));
+
+        if ($allSelected) {
+            $this->selectedKeys = array_values(array_diff($this->selectedKeys, $pageKeys));
+            $this->selectAllRecords = false;
+        } else {
+            $this->selectedKeys = array_values(array_unique(array_merge($this->selectedKeys, $pageKeys)));
+        }
+    }
+
+    public function enableSelectAllRecords(): void
+    {
+        $this->selectAllRecords = true;
+        $this->selectedKeys = $this->getPageKeys();
+    }
+
+    public function clearSelection(): void
+    {
+        $this->selectedKeys = [];
+        $this->selectAllRecords = false;
+    }
+
+    public function clearSort(): void
+    {
+        $this->sort = null;
+        $this->direction = 'asc';
+        $this->resetPage();
+    }
+
+    public function clearFilter(string $key): void
+    {
+        foreach ($this->resolvedFilters() as $filter) {
+            if ($filter->key() === $key) {
+                $this->tableFilters[$key] = $filter->initialState();
+                break;
+            }
+        }
+
+        $this->resetPage();
+    }
+
+    public function clearFilters(): void
+    {
+        foreach ($this->resolvedFilters() as $filter) {
+            $this->tableFilters[$filter->key()] = $filter->initialState();
+        }
+
+        $this->resetPage();
+    }
+
+    public function clearAll(): void
+    {
+        $this->search = '';
+        $this->clearSort();
+        $this->clearFilters();
+    }
+
     public function resolvedColumns(): array
     {
         return array_values(array_filter(
             $this->columns(),
             fn ($column) => $column instanceof Column
         ));
+    }
+
+    public function visibleColumns(): array
+    {
+        if (empty($this->hiddenColumns)) {
+            return $this->resolvedColumns();
+        }
+
+        return array_values(array_filter(
+            $this->resolvedColumns(),
+            fn (Column $col) => ! in_array($col->field(), $this->hiddenColumns, true)
+        ));
+    }
+
+    public function hideableColumns(): array
+    {
+        return array_values(array_filter(
+            $this->resolvedColumns(),
+            fn (Column $col) => $col->isHideable()
+        ));
+    }
+
+    public function activeFiltersCount(): int
+    {
+        $count = 0;
+
+        foreach ($this->resolvedFilters() as $filter) {
+            $value = $this->tableFilters[$filter->key()] ?? $filter->initialState();
+            if ($filter->hasValue($value)) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    public function activeChips(): array
+    {
+        $chips = [];
+
+        if ($this->sort && $this->sanitizeSort() !== null) {
+            $column = collect($this->resolvedColumns())
+                ->first(fn (Column $col) => $col->field() === $this->sort);
+
+            if ($column) {
+                $chips[] = [
+                    'type' => 'sort',
+                    'label' => $column->label().': '.($this->direction === 'asc' ? 'A-Z' : 'Z-A'),
+                    'key' => null,
+                ];
+            }
+        }
+
+        foreach ($this->resolvedFilters() as $filter) {
+            $value = $this->tableFilters[$filter->key()] ?? $filter->initialState();
+
+            if ($filter->hasValue($value)) {
+                $chips[] = [
+                    'type' => 'filter',
+                    'label' => $filter->label().': '.$this->chipValueLabel($filter, $value),
+                    'key' => $filter->key(),
+                ];
+            }
+        }
+
+        return $chips;
+    }
+
+    public function resolveRowKey(mixed $row): mixed
+    {
+        $field = $this->rowKeyField();
+
+        return is_array($row) ? ($row[$field] ?? null) : ($row->{$field} ?? null);
     }
 
     public function resolvedFilters(): array
@@ -161,7 +336,7 @@ abstract class FluxTableComponent extends Component
     public function stickyMetadata(): array
     {
         return $this->stickyColumnManager->map(
-            $this->resolvedColumns(),
+            $this->visibleColumns(),
             config('livewire-flux-tables.default_sticky_width', '12rem')
         );
     }
@@ -306,6 +481,74 @@ abstract class FluxTableComponent extends Component
             ?? $this->translate('No records match the current criteria.'));
     }
 
+    public function selectionColumn(): ?SelectionColumn
+    {
+        foreach ($this->resolvedColumns() as $column) {
+            if ($column instanceof SelectionColumn) {
+                return $column;
+            }
+        }
+
+        return null;
+    }
+
+    public function hasSelection(): bool
+    {
+        return $this->selectionColumn() !== null;
+    }
+
+    public function pageSelectionState(): string
+    {
+        if ($this->selectAllRecords) {
+            return 'full';
+        }
+
+        $pageKeys = $this->getPageKeys();
+
+        if (empty($pageKeys)) {
+            return 'none';
+        }
+
+        $diff = array_diff($pageKeys, $this->selectedKeys);
+
+        if (empty($diff)) {
+            return 'full';
+        }
+
+        $selected = array_intersect($pageKeys, $this->selectedKeys);
+
+        return empty($selected) ? 'none' : 'partial';
+    }
+
+    public function isRowSelected(mixed $row): bool
+    {
+        $key = (string) $this->resolveRowKey($row);
+
+        return in_array($key, $this->selectedKeys, true);
+    }
+
+    public function allFilteredKeys(): array
+    {
+        return $this->queryPipeline->keys($this->dataSource(), $this);
+    }
+
+    public function totalRecords(): ?int
+    {
+        $rows = $this->rows();
+
+        return method_exists($rows, 'total') ? $rows->total() : null;
+    }
+
+    public function resolveRowKeyField(): string
+    {
+        return $this->rowKeyField();
+    }
+
+    protected function rowKeyField(): string
+    {
+        return 'id';
+    }
+
     protected function defaultSort(): ?string
     {
         return null;
@@ -323,14 +566,61 @@ abstract class FluxTableComponent extends Component
 
     abstract public function columns(): array;
 
+    protected function getPageKeys(): array
+    {
+        $rows = $this->rows();
+        $items = method_exists($rows, 'items') ? $rows->items() : iterator_to_array($rows);
+        $keys = [];
+
+        foreach ($items as $row) {
+            $key = $this->resolveRowKey($row);
+            if ($key !== null) {
+                $keys[] = (string) $key;
+            }
+        }
+
+        return $keys;
+    }
+
+    protected function chipValueLabel(Filter $filter, mixed $value): string
+    {
+        if ($filter->type() === 'select' && method_exists($filter, 'optionsList')) {
+            $options = $filter->optionsList();
+
+            return $options[$value] ?? (string) $value;
+        }
+
+        if ($filter->type() === 'date-range' && is_array($value)) {
+            $from = $value['from'] ?? null;
+            $to = $value['to'] ?? null;
+
+            if ($from && $to) {
+                return $from.' – '.$to;
+            }
+            if ($from) {
+                return $this->translate('From').' '.$from;
+            }
+            if ($to) {
+                return $this->translate('To').' '.$to;
+            }
+        }
+
+        return (string) $value;
+    }
+
     public function render()
     {
+        $visibleColumns = $this->visibleColumns();
+
         return view($this->tableView ?: 'livewire-flux-tables::livewire.table-component', [
             'component' => $this,
-            'columns' => $this->resolvedColumns(),
+            'columns' => $visibleColumns,
             'filters' => $this->resolvedFilters(),
             'rows' => $this->rows(),
-            'sticky' => $this->stickyMetadata(),
+            'sticky' => $this->stickyColumnManager->map(
+                $visibleColumns,
+                config('livewire-flux-tables.default_sticky_width', '12rem')
+            ),
         ]);
     }
 }

@@ -36,6 +36,8 @@ class Column
 
     protected bool $allowHtml = false;
 
+    protected bool $hideable = true;
+
     public function __construct(
         protected string $label,
         protected ?string $field = null,
@@ -176,6 +178,18 @@ class Column
         return $this;
     }
 
+    public function hideable(bool $hideable = true): static
+    {
+        $this->hideable = $hideable;
+
+        return $this;
+    }
+
+    public function isHideable(): bool
+    {
+        return $this->hideable;
+    }
+
     public function isSortable(): bool
     {
         return $this->sortable;
@@ -229,6 +243,11 @@ class Column
     public function allowsHtml(): bool
     {
         return $this->allowHtml;
+    }
+
+    public function isSelectionColumn(): bool
+    {
+        return false;
     }
 
     public function resolveValue(mixed $row): mixed

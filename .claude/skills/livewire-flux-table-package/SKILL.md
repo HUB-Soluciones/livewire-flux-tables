@@ -251,6 +251,7 @@ php artisan livewire-flux-tables:make {name} [options]
 | `--with-filters` | Include starter filter declarations in `filters()` |
 | `--with-filter-methods` | Include starter `applyXFilter()` methods in the component |
 | `--with-cell-views` | Include a sample custom cell Blade view |
+| `--with-selection` | Include a `SelectionColumn` with a starter bulk action method |
 | `--paginate=15` | Default `perPage` value (defaults to 15) |
 | `--force` | Overwrite existing files |
 | `--stub=default` | Stub set name (for custom published stubs) |
@@ -425,6 +426,54 @@ Do not accept a table as "responsive" if on mobile it only shrinks text until it
 
 ---
 
+## Selection column (bulk actions)
+
+Use `SelectionColumn::make()` as the **first element** of `columns()` to enable row selection, a tri-state header dropdown, and a bulk-actions toolbar. This is the only way to activate selection — do not override `hasBulkCheckboxes()` or `bulkActions()` (those hooks were removed).
+
+```php
+use HubSoluciones\LivewireFluxTables\Columns\SelectionColumn;
+
+public function columns(): array
+{
+    return [
+        SelectionColumn::make()->bulkActions([
+            'deleteSelected' => 'Delete selected',
+            'exportSelected' => 'Export selected',
+        ]),
+        Column::make('Name', 'name')->sortable(),
+        // ...
+    ];
+}
+
+public function deleteSelected(): void
+{
+    // When selectAllRecords is true, allFilteredKeys() returns ALL IDs matching
+    // current search + filters (without pagination). Use it for "select all" bulk ops.
+    $ids = $this->selectAllRecords ? $this->allFilteredKeys() : $this->selectedKeys;
+    User::whereIn('id', $ids)->delete();
+    $this->clearSelection();
+}
+```
+
+**Header UX**: clicking the header checkbox opens a dropdown with "Select page (N)", "Select all M records" (only if total > page), and "Clear selection".
+
+**Defaults** (all overridable via chaining):
+- `sticky('left')` — use `->notSticky()` to disable
+- `width('3rem')`, `align('center')`
+- `hideable(false)` — never appears in the Columns dropdown
+
+**Key public helpers on the component**:
+- `$selectedKeys` — array of selected row keys (strings)
+- `$selectAllRecords` — bool flag meaning "all filtered records are conceptually selected"
+- `allFilteredKeys(): array` — all IDs matching active search + filters (no pagination)
+- `clearSelection()` — resets both `selectedKeys` and `selectAllRecords`
+- `selectionColumn(): ?SelectionColumn` — returns the declared column or null
+- `hasSelection(): bool` — whether a `SelectionColumn` is present
+
+**Conditional selectability**: use `->selectableWhen(fn ($row, $component) => $row->status !== 'locked')` to render certain rows' checkboxes as `disabled`.
+
+---
+
 ## What the agent must avoid
 
 Do not do this:
@@ -437,6 +486,7 @@ Do not do this:
 - break URL state persistence
 - use sticky columns indiscriminately
 - hide mobile UX bugs behind `overflow-x-auto` without verifying the real result
+- override `hasBulkCheckboxes()` or `bulkActions()` — those hooks were removed; use `SelectionColumn::make()` instead
 
 ---
 

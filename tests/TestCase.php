@@ -13,6 +13,11 @@ abstract class TestCase extends Orchestra
     protected function getEnvironmentSetUp($app): void
     {
         $app['config']->set('app.key', 'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=');
+        $viewCachePath = sys_get_temp_dir().'/livewire-flux-tables-views';
+        if (! is_dir($viewCachePath)) {
+            mkdir($viewCachePath, 0755, true);
+        }
+        $app['config']->set('view.compiled', $viewCachePath);
         $app['config']->set('database.default', 'testing');
         $app['config']->set('database.connections.testing', [
             'driver' => 'sqlite',

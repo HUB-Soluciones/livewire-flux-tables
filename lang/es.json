@@ -4,5 +4,17 @@
     "Records per page": "Registros por página",
     "All": "Todos",
     "No results": "Sin resultados",
-    "No records match the current criteria.": "No hay registros que coincidan con los criterios actuales."
+    "No records match the current criteria.": "No hay registros que coincidan con los criterios actuales.",
+    "Filters": "Filtros",
+    "Columns": "Columnas",
+    "Bulk actions": "Acciones masivas",
+    "Clear": "Borrar",
+    "From": "Desde",
+    "To": "Hasta",
+    "All :count records are selected.": "Todos los :count registros están seleccionados.",
+    "Clear selection": "Limpiar selección",
+    ":count records selected on this page.": ":count registros seleccionados en esta página.",
+    "Select all :count records": "Seleccionar todos los :count registros",
+    "Select page (:count)": "Seleccionar página (:count)",
+    "Select records": "Seleccionar registros"
 }

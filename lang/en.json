@@ -4,5 +4,17 @@
     "Records per page": "Records per page",
     "All": "All",
     "No results": "No results",
-    "No records match the current criteria.": "No records match the current criteria."
+    "No records match the current criteria.": "No records match the current criteria.",
+    "Filters": "Filters",
+    "Columns": "Columns",
+    "Bulk actions": "Bulk actions",
+    "Clear": "Clear",
+    "From": "From",
+    "To": "To",
+    "All :count records are selected.": "All :count records are selected.",
+    "Clear selection": "Clear selection",
+    ":count records selected on this page.": ":count records selected on this page.",
+    "Select all :count records": "Select all :count records",
+    "Select page (:count)": "Select page (:count)",
+    "Select records": "Select records"
 }
