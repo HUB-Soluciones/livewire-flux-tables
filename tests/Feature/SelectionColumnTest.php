@@ -2,6 +2,7 @@
 
 namespace HubSoluciones\LivewireFluxTables\Tests\Feature;
 
+use HubSoluciones\LivewireFluxTables\Columns\SelectionColumn;
 use HubSoluciones\LivewireFluxTables\Tests\Fixtures\Livewire\UsersTable;
 use HubSoluciones\LivewireFluxTables\Tests\Fixtures\Livewire\UsersTableWithSelection;
 use HubSoluciones\LivewireFluxTables\Tests\Fixtures\Models\FixtureUser;
@@ -222,5 +223,55 @@ class SelectionColumnTest extends TestCase
 
         $this->assertArrayHasKey('markInactive', $bulkActions);
         $this->assertSame('Marcar inactivos', $bulkActions['markInactive']);
+    }
+
+    public function test_resource_defaults_to_record_records(): void
+    {
+        $col = SelectionColumn::make();
+
+        $this->assertSame('record', $col->getResourceSingular());
+        $this->assertSame('records', $col->getResourcePlural());
+        $this->assertSame('record', $col->getResourceLabel(1));
+        $this->assertSame('records', $col->getResourceLabel(5));
+    }
+
+    public function test_resource_can_be_customized(): void
+    {
+        $col = SelectionColumn::make()->resource('socio', 'socios');
+
+        $this->assertSame('socio', $col->getResourceLabel(1));
+        $this->assertSame('socios', $col->getResourceLabel(2));
+    }
+
+    public function test_normalized_bulk_actions_handles_string_form(): void
+    {
+        $col = SelectionColumn::make()->bulkActions(['markInactive' => 'Marcar inactivos']);
+        $normalized = $col->getNormalizedBulkActions();
+
+        $this->assertSame([
+            'label'   => 'Marcar inactivos',
+            'icon'    => null,
+            'variant' => null,
+        ], $normalized['markInactive']);
+    }
+
+    public function test_normalized_bulk_actions_handles_array_form(): void
+    {
+        $col = SelectionColumn::make()->bulkActions([
+            'export' => ['label' => 'Exportar', 'icon' => 'arrow-down-tray', 'variant' => 'primary'],
+        ]);
+
+        $this->assertSame([
+            'label'   => 'Exportar',
+            'icon'    => 'arrow-down-tray',
+            'variant' => 'primary',
+        ], $col->getNormalizedBulkActions()['export']);
+    }
+
+    public function test_get_bulk_actions_remains_raw_for_backwards_compat(): void
+    {
+        $col = SelectionColumn::make()->bulkActions(['markInactive' => 'Marcar inactivos']);
+
+        $this->assertSame('Marcar inactivos', $col->getBulkActions()['markInactive']);
     }
 }

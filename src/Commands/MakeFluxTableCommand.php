@@ -175,7 +175,7 @@ class MakeFluxTableCommand extends Command
     protected function buildColumns(bool $withCellViews, string $cellViewName, bool $withSelection = false): string
     {
         $selectionColumn = $withSelection
-            ? "\n            SelectionColumn::make()->bulkActions(['deleteSelected' => 'Eliminar seleccionados']),"
+            ? "\n            SelectionColumn::make()\n                ->resource('registro', 'registros')\n                ->bulkActions([\n                    'deleteSelected' => ['label' => 'Eliminar seleccionados', 'icon' => 'trash', 'variant' => 'danger'],\n                ]),"
             : '';
 
         $statusColumn = $withCellViews

@@ -1,6 +1,6 @@
 ---
 name: livewire-flux-table-package
-description: Use this skill when the project needs to create, modify, fix, document, or integrate dynamic tables using the Livewire Flux UI tables package. Activate it for tasks related to column definitions, filters, global search, sticky columns, custom cells, pagination, mobile-first responsive behavior, controller integration, and Blade rendering. Do not use it for plain Livewire tables as the main entrypoint, or to reimplement the package from scratch when a reusable abstraction already exists.
+description: Use this skill when the project needs to create, modify, fix, document, or integrate dynamic tables using the Livewire Flux UI tables package. Activate it for tasks related to column definitions, filters, global search, sticky columns, custom cells, pagination, mobile-first responsive behavior, zebra striping, dark mode, controller integration, and Blade rendering. Do not use it for plain Livewire tables as the main entrypoint, or to reimplement the package from scratch when a reusable abstraction already exists.
 ---
 
 # Livewire Flux Table Package Skill
@@ -17,6 +17,8 @@ This skill defines how to professionally use the dynamic tables package for Lara
 - sticky columns
 - custom Blade cells
 - mobile-first behavior
+- zebra striping with configurable colors
+- full dark mode support (Tailwind v4+ `dark:` prefix)
 - reuse via dedicated table classes or inline builders
 
 The goal is for the agent to **use the package correctly**, maintain a consistent API, and avoid ad hoc solutions that break the system's reusability.
@@ -35,6 +37,8 @@ Use this skill when the user asks for any of the following:
 - integrating a table from a Laravel controller
 - making a table reusable across multiple modules
 - improving the responsive/mobile behavior of an existing table
+- enabling or customizing zebra striping (alternating row colors)
+- adding or verifying dark mode support on tables
 - fixing bugs in the package or extending it without breaking its architecture
 - writing documentation, examples, or tests for the package
 
@@ -138,6 +142,8 @@ Every change must verify:
 - sorting
 - sticky column behavior
 - custom cells
+- zebra striping (if enabled): alternation, hover/selection overlay, sticky cell color
+- dark mode: all elements (header, rows, toolbar, filters, pagination, dropdowns, empty state) in both light and dark
 
 ---
 
@@ -342,12 +348,63 @@ When adding columns:
 - use `mobileHidden()` for secondary columns
 - use `default()` when the value may be empty or null
 
+### Zebra striping
+
+Alternating row backgrounds are opt-in and fully configurable:
+
+**Global activation** (applies to all tables in the project):
+```php
+// config/livewire-flux-tables.php
+'zebra_striping'   => true,
+'zebra_odd_class'  => 'bg-white dark:bg-zinc-900',        // iteration 1, 3, 5…
+'zebra_even_class' => 'bg-zinc-50 dark:bg-zinc-800/40',   // iteration 2, 4, 6…
+'row_base_class'   => 'bg-white dark:bg-zinc-900',        // used when striping is off
+```
+
+**Per-component override** (overrides the global config, works in both directions):
+```php
+class UsersTable extends FluxTableComponent
+{
+    protected ?bool $striped = true;  // force on even if config is false
+    // protected ?bool $striped = false; // force off even if config is true
+    // protected ?bool $striped = null;  // inherit from config (default)
+}
+```
+
+**Rules:**
+- `$striped = null` (default) → reads `zebra_striping` from config.
+- Selected rows always use the selection blue tint, overriding the stripe.
+- Sticky cells inherit the row's computed background automatically — no extra setup needed.
+- Classes are plain Tailwind strings; include `dark:` variants directly in the value.
+
+### Dark mode
+
+The package ships with full `dark:` Tailwind coverage on all views. It works with **Tailwind CSS v4+**.
+
+**Default behavior (media query):** No setup needed. Dark mode activates when the OS is in dark mode.
+
+**Class-based dark mode:** Add a custom variant to your project's CSS file:
+```css
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+```
+Then toggle the `dark` class on `<html>` or `<body>` to switch themes programmatically.
+
+**Customizing dark colors:** All visual class keys in the config accept `dark:` variants:
+```php
+'table_wrapper_class' => 'overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900',
+'zebra_odd_class'     => 'bg-white dark:bg-zinc-900',
+'zebra_even_class'    => 'bg-zinc-50 dark:bg-zinc-800/40',
+'sticky_header_class' => 'bg-zinc-50 dark:bg-zinc-800',
+```
+
 ### Sticky columns
 
 When working with sticky columns:
 
 - keep sticky columns to a minimum, typically 1 to 2
-- ensure `background`, `z-index`, and borders are preserved
+- `z-index`, shadow, and position are handled automatically by `StickyColumnManager`
+- the sticky cell background is inherited from the row (zebra/selection-aware) — do NOT set `bg-*` manually on sticky cells
 - avoid layouts where too many sticky columns kill usable space
 - verify real horizontal scroll on both mobile and desktop
 - if sticky worsens mobile UX, disable it or adapt behavior at small breakpoints
@@ -428,7 +485,26 @@ Do not accept a table as "responsive" if on mobile it only shrinks text until it
 
 ## Selection column (bulk actions)
 
-Use `SelectionColumn::make()` as the **first element** of `columns()` to enable row selection, a tri-state header dropdown, and a bulk-actions toolbar. This is the only way to activate selection — do not override `hasBulkCheckboxes()` or `bulkActions()` (those hooks were removed).
+Use `SelectionColumn::make()` as the **first element** of `columns()` to enable row selection. This is the only way to activate selection — do not override `hasBulkCheckboxes()` or `bulkActions()` (those hooks were removed).
+
+The package automatically renders a **sky-toned selection banner** above the table that:
+- shows ":count :resource selected on this page" (or "All N :resource are selected")
+- offers a "Select all N" / "Clear selection" link
+- renders **inline buttons** for each declared bulk action — no separate dropdown in the toolbar
+
+**Just use the tag — never duplicate the banner in the parent Blade:**
+```blade
+{{-- Correcto: el banner y los botones vienen del paquete --}}
+<livewire:tables.socios.socios-tabla />
+
+{{-- Incorrecto: NO envolver con un banner externo --}}
+<div class="bg-sky-50 ...">{{ $count }} socios... <button>Exportar</button></div>
+<livewire:tables.socios.socios-tabla />
+```
+
+### Declaring bulk actions
+
+`bulkActions()` accepts two interchangeable shapes per entry:
 
 ```php
 use HubSoluciones\LivewireFluxTables\Columns\SelectionColumn;
@@ -436,23 +512,41 @@ use HubSoluciones\LivewireFluxTables\Columns\SelectionColumn;
 public function columns(): array
 {
     return [
-        SelectionColumn::make()->bulkActions([
-            'deleteSelected' => 'Delete selected',
-            'exportSelected' => 'Export selected',
-        ]),
+        SelectionColumn::make()
+            ->resource('socio', 'socios')   // singular, plural — used in banner copy
+            ->bulkActions([
+                // string form (label only) — backwards-compatible
+                'markInactive' => 'Marcar inactivos',
+
+                // array form — adds icon and variant
+                'export' => [
+                    'label'   => 'Exportar seleccionados',
+                    'icon'    => 'arrow-down-tray',  // rendered as a generic SVG placeholder; publish the view to swap for a real icon
+                    'variant' => 'primary',           // 'primary' | 'danger' | 'default' (default: 'default')
+                ],
+            ]),
         Column::make('Name', 'name')->sortable(),
         // ...
     ];
 }
 
-public function deleteSelected(): void
+public function export(): void
 {
-    // When selectAllRecords is true, allFilteredKeys() returns ALL IDs matching
-    // current search + filters (without pagination). Use it for "select all" bulk ops.
     $ids = $this->selectAllRecords ? $this->allFilteredKeys() : $this->selectedKeys;
-    User::whereIn('id', $ids)->delete();
+    // act on $ids...
     $this->clearSelection();
 }
+```
+
+### Customizing the banner color
+
+Override any of these three config keys (no need to publish the view):
+
+```php
+// config/livewire-flux-tables.php
+'selection_banner_class'      => '...',  // outer wrapper — default: sky-50/sky-950 with border
+'selection_banner_text_class' => '...',  // counter text color — default: text-sky-700/sky-300
+'selection_banner_link_class' => '...',  // "Select all" / "Clear selection" links — default: sky underlined
 ```
 
 **Header UX**: clicking the header checkbox opens a dropdown with "Select page (N)", "Select all M records" (only if total > page), and "Clear selection".
@@ -487,6 +581,7 @@ Do not do this:
 - use sticky columns indiscriminately
 - hide mobile UX bugs behind `overflow-x-auto` without verifying the real result
 - override `hasBulkCheckboxes()` or `bulkActions()` — those hooks were removed; use `SelectionColumn::make()` instead
+- duplicate the selection banner in the parent Blade — the package already renders it inside the component with sky colors and bulk action buttons inline
 
 ---
 

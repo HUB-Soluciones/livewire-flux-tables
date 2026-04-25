@@ -21,6 +21,7 @@ class StickyColumnManager
                 'style' => $column->widthValue() ? 'width: '.$column->widthValue().';' : '',
                 'class' => $this->alignmentClass($column),
                 'header_class' => $this->alignmentClass($column),
+                'is_sticky' => false,
             ];
         }
 
@@ -32,8 +33,9 @@ class StickyColumnManager
             $width = $column->widthValue() ?: $defaultWidth;
 
             $metadata[$index]['style'] .= ' position: sticky; left: '.$leftOffset.';';
-            $metadata[$index]['class'] .= ' sticky bg-white shadow-[6px_0_12px_-12px_rgba(15,23,42,0.35)] z-20';
-            $metadata[$index]['header_class'] .= ' sticky bg-zinc-50 shadow-[6px_0_12px_-12px_rgba(15,23,42,0.35)] z-30';
+            $metadata[$index]['is_sticky'] = true;
+            $metadata[$index]['class'] .= ' sticky shadow-[6px_0_12px_-12px_rgba(15,23,42,0.35)] z-20';
+            $metadata[$index]['header_class'] .= ' sticky shadow-[6px_0_12px_-12px_rgba(15,23,42,0.35)] z-30 '.config('livewire-flux-tables.sticky_header_class', 'bg-zinc-50 dark:bg-zinc-800');
 
             $leftOffset = 'calc('.$leftOffset.' + '.$width.')';
         }
@@ -48,8 +50,9 @@ class StickyColumnManager
             $width = $column->widthValue() ?: $defaultWidth;
 
             $metadata[$index]['style'] .= ' position: sticky; right: '.$rightOffset.';';
-            $metadata[$index]['class'] .= ' sticky bg-white shadow-[-6px_0_12px_-12px_rgba(15,23,42,0.35)] z-20';
-            $metadata[$index]['header_class'] .= ' sticky bg-zinc-50 shadow-[-6px_0_12px_-12px_rgba(15,23,42,0.35)] z-30';
+            $metadata[$index]['is_sticky'] = true;
+            $metadata[$index]['class'] .= ' sticky shadow-[-6px_0_12px_-12px_rgba(15,23,42,0.35)] z-20';
+            $metadata[$index]['header_class'] .= ' sticky shadow-[-6px_0_12px_-12px_rgba(15,23,42,0.35)] z-30 '.config('livewire-flux-tables.sticky_header_class', 'bg-zinc-50 dark:bg-zinc-800');
 
             $rightOffset = 'calc('.$rightOffset.' + '.$width.')';
         }

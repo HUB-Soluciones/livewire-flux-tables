@@ -11,6 +11,10 @@ class SelectionColumn extends Column
 
     protected mixed $selectablePredicate = null;
 
+    protected string $resourceSingular = 'record';
+
+    protected string $resourcePlural = 'records';
+
     public function __construct()
     {
         parent::__construct('', '__selection__');
@@ -42,6 +46,47 @@ class SelectionColumn extends Column
     public function getBulkActions(): array
     {
         return $this->bulkActionsList;
+    }
+
+    public function getNormalizedBulkActions(): array
+    {
+        $normalized = [];
+        foreach ($this->bulkActionsList as $method => $config) {
+            if (is_string($config)) {
+                $normalized[$method] = ['label' => $config, 'icon' => null, 'variant' => null];
+            } else {
+                $normalized[$method] = [
+                    'label'   => $config['label']   ?? $method,
+                    'icon'    => $config['icon']    ?? null,
+                    'variant' => $config['variant'] ?? null,
+                ];
+            }
+        }
+
+        return $normalized;
+    }
+
+    public function resource(string $singular, string $plural): static
+    {
+        $this->resourceSingular = $singular;
+        $this->resourcePlural = $plural;
+
+        return $this;
+    }
+
+    public function getResourceSingular(): string
+    {
+        return $this->resourceSingular;
+    }
+
+    public function getResourcePlural(): string
+    {
+        return $this->resourcePlural;
+    }
+
+    public function getResourceLabel(int $count): string
+    {
+        return $count === 1 ? $this->resourceSingular : $this->resourcePlural;
     }
 
     public function selectableWhen(callable $predicate): static

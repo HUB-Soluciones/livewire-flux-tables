@@ -13,6 +13,8 @@ class UsersTableWithSelection extends FluxTableComponent
 
     public array $markedInactive = [];
 
+    public bool $exported = false;
+
     public function builder()
     {
         return FixtureUser::query();
@@ -21,7 +23,16 @@ class UsersTableWithSelection extends FluxTableComponent
     public function columns(): array
     {
         return [
-            SelectionColumn::make()->bulkActions(['markInactive' => 'Marcar inactivos']),
+            SelectionColumn::make()
+                ->resource('socio', 'socios')
+                ->bulkActions([
+                    'markInactive' => 'Marcar inactivos',
+                    'export' => [
+                        'label'   => 'Exportar seleccionados',
+                        'icon'    => 'arrow-down-tray',
+                        'variant' => 'primary',
+                    ],
+                ]),
             Column::make('ID', 'id')->sortable(),
             Column::make('Nombre', 'name')->searchable()->sortable(),
             Column::make('Email', 'email')->searchable(),
@@ -35,5 +46,10 @@ class UsersTableWithSelection extends FluxTableComponent
             : $this->selectedKeys;
 
         $this->clearSelection();
+    }
+
+    public function export(): void
+    {
+        $this->exported = true;
     }
 }

@@ -3,6 +3,7 @@
 namespace HubSoluciones\LivewireFluxTables\Tests\Feature;
 
 use HubSoluciones\LivewireFluxTables\Tests\Fixtures\Livewire\UsersTable;
+use HubSoluciones\LivewireFluxTables\Tests\Fixtures\Livewire\UsersTableStriped;
 use HubSoluciones\LivewireFluxTables\Tests\Fixtures\Models\FixtureUser;
 use HubSoluciones\LivewireFluxTables\Tests\TestCase;
 use HubSoluciones\LivewireFluxTables\Query\QueryPipeline;
@@ -151,5 +152,117 @@ class FluxTableComponentTest extends TestCase
 
         $this->assertStringContainsString('position: sticky', $metadata[1]['style']);
         $this->assertStringContainsString('left: 0px', $metadata[1]['style']);
+    }
+
+    public function test_zebra_striping_is_disabled_by_default(): void
+    {
+        $component = app(UsersTable::class);
+        $component->boot(
+            app(QueryPipeline::class),
+            app(StickyColumnManager::class),
+            app(CellRenderer::class),
+        );
+        $component->mount();
+
+        $this->assertFalse($component->isStriped());
+    }
+
+    public function test_zebra_striping_can_be_enabled_via_config(): void
+    {
+        config()->set('livewire-flux-tables.zebra_striping', true);
+
+        $component = app(UsersTable::class);
+        $component->boot(
+            app(QueryPipeline::class),
+            app(StickyColumnManager::class),
+            app(CellRenderer::class),
+        );
+        $component->mount();
+
+        $this->assertTrue($component->isStriped());
+    }
+
+    public function test_zebra_striping_can_be_overridden_per_component(): void
+    {
+        config()->set('livewire-flux-tables.zebra_striping', false);
+
+        $component = app(UsersTableStriped::class);
+        $component->boot(
+            app(QueryPipeline::class),
+            app(StickyColumnManager::class),
+            app(CellRenderer::class),
+        );
+        $component->mount();
+
+        $this->assertTrue($component->isStriped());
+    }
+
+    public function test_row_background_class_alternates_when_striped(): void
+    {
+        config()->set('livewire-flux-tables.zebra_striping', true);
+        config()->set('livewire-flux-tables.zebra_odd_class', 'bg-white dark:bg-zinc-900');
+        config()->set('livewire-flux-tables.zebra_even_class', 'bg-zinc-50 dark:bg-zinc-800/40');
+
+        $component = app(UsersTable::class);
+        $component->boot(
+            app(QueryPipeline::class),
+            app(StickyColumnManager::class),
+            app(CellRenderer::class),
+        );
+        $component->mount();
+
+        $this->assertSame('bg-white dark:bg-zinc-900', $component->rowBackgroundClass(1, false));
+        $this->assertSame('bg-zinc-50 dark:bg-zinc-800/40', $component->rowBackgroundClass(2, false));
+        $this->assertSame('bg-white dark:bg-zinc-900', $component->rowBackgroundClass(3, false));
+        $this->assertSame('bg-zinc-50 dark:bg-zinc-800/40', $component->rowBackgroundClass(4, false));
+    }
+
+    public function test_selected_row_class_overrides_zebra(): void
+    {
+        config()->set('livewire-flux-tables.zebra_striping', true);
+
+        $component = app(UsersTable::class);
+        $component->boot(
+            app(QueryPipeline::class),
+            app(StickyColumnManager::class),
+            app(CellRenderer::class),
+        );
+        $component->mount();
+
+        $this->assertSame('bg-blue-50/50 dark:bg-blue-900/20', $component->rowBackgroundClass(1, true));
+        $this->assertSame('bg-blue-50/50 dark:bg-blue-900/20', $component->rowBackgroundClass(2, true));
+    }
+
+    public function test_row_background_class_uses_base_class_when_not_striped(): void
+    {
+        config()->set('livewire-flux-tables.zebra_striping', false);
+        config()->set('livewire-flux-tables.row_base_class', 'bg-white dark:bg-zinc-900');
+
+        $component = app(UsersTable::class);
+        $component->boot(
+            app(QueryPipeline::class),
+            app(StickyColumnManager::class),
+            app(CellRenderer::class),
+        );
+        $component->mount();
+
+        $this->assertSame('bg-white dark:bg-zinc-900', $component->rowBackgroundClass(1, false));
+        $this->assertSame('bg-white dark:bg-zinc-900', $component->rowBackgroundClass(2, false));
+    }
+
+    public function test_sticky_cells_no_longer_have_hardcoded_bg_white(): void
+    {
+        $component = app(UsersTable::class);
+        $component->boot(
+            app(QueryPipeline::class),
+            app(StickyColumnManager::class),
+            app(CellRenderer::class),
+        );
+        $component->mount();
+
+        $metadata = $component->stickyMetadata();
+
+        $this->assertStringNotContainsString('bg-white', $metadata[1]['class']);
+        $this->assertTrue($metadata[1]['is_sticky']);
     }
 }

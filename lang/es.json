@@ -16,5 +16,8 @@
     ":count records selected on this page.": ":count registros seleccionados en esta página.",
     "Select all :count records": "Seleccionar todos los :count registros",
     "Select page (:count)": "Seleccionar página (:count)",
-    "Select records": "Seleccionar registros"
+    "Select records": "Seleccionar registros",
+    "All :count :resource are selected.": "Los :count :resource están seleccionados.",
+    ":count :resource selected on this page.": ":count :resource seleccionados en esta página.",
+    "Select all :count :resource": "Seleccionar todos los :count :resource"
 }

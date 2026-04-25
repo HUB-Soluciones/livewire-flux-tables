@@ -42,6 +42,8 @@ abstract class FluxTableComponent extends Component
 
     protected ?string $tableView = null;
 
+    protected ?bool $striped = null;
+
     protected QueryPipeline $queryPipeline;
 
     protected StickyColumnManager $stickyColumnManager;
@@ -349,6 +351,26 @@ abstract class FluxTableComponent extends Component
     public function searchPlaceholder(): string
     {
         return $this->configuration()->searchPlaceholder;
+    }
+
+    public function isStriped(): bool
+    {
+        return $this->striped ?? (bool) config('livewire-flux-tables.zebra_striping', false);
+    }
+
+    public function rowBackgroundClass(int $iteration, bool $isSelected): string
+    {
+        if ($isSelected) {
+            return 'bg-blue-50/50 dark:bg-blue-900/20';
+        }
+
+        if ($this->isStriped()) {
+            return $iteration % 2 === 0
+                ? (string) config('livewire-flux-tables.zebra_even_class', 'bg-zinc-50 dark:bg-zinc-800/40')
+                : (string) config('livewire-flux-tables.zebra_odd_class', 'bg-white dark:bg-zinc-900');
+        }
+
+        return (string) config('livewire-flux-tables.row_base_class', 'bg-white dark:bg-zinc-900');
     }
 
     public function perPageOptions(): array

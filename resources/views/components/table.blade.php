@@ -1,13 +1,13 @@
 <div class="{{ config('livewire-flux-tables.table_wrapper_class') }}">
     <div class="{{ config('livewire-flux-tables.table_scroll_class') }}">
-        <table class="min-w-full border-separate border-spacing-0 text-sm text-zinc-700">
+        <table class="min-w-full border-separate border-spacing-0 text-sm text-zinc-700 dark:text-zinc-300">
             <thead>
-                <tr class="bg-zinc-50">
+                <tr class="bg-zinc-50 dark:bg-zinc-800">
                     @foreach ($columns as $index => $column)
-                        @php($meta = $sticky[$index] ?? ['class' => '', 'header_class' => '', 'style' => ''])
+                        @php($meta = $sticky[$index] ?? ['class' => '', 'header_class' => '', 'style' => '', 'is_sticky' => false])
 
                         @if ($column->isSelectionColumn())
-                            <th scope="col" style="{{ $meta['style'] }}" class="border-b border-zinc-200 px-4 py-3 {{ trim($meta['header_class']) }}">
+                            <th scope="col" style="{{ $meta['style'] }}" class="border-b border-zinc-200 dark:border-zinc-700 px-4 py-3 {{ trim($meta['header_class']) }}">
                                 @include('livewire-flux-tables::components.selection-header', [
                                     'component' => $component,
                                     'column' => $column,
@@ -17,7 +17,7 @@
                             <th
                                 scope="col"
                                 style="{{ $meta['style'] }}"
-                                class="border-b border-zinc-200 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 {{ trim($meta['header_class']) }} {{ $column->isMobileHidden() ? 'hidden md:table-cell' : 'table-cell' }}"
+                                class="border-b border-zinc-200 dark:border-zinc-700 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 {{ trim($meta['header_class']) }} {{ $column->isMobileHidden() ? 'hidden md:table-cell' : 'table-cell' }}"
                             >
                                 <button
                                     type="button"
@@ -27,9 +27,9 @@
                                     <span>{{ $column->label() }}</span>
 
                                     @if ($component->sort === $column->field())
-                                        <span class="text-zinc-900">{{ $component->direction === 'asc' ? '↑' : '↓' }}</span>
+                                        <span class="text-zinc-900 dark:text-zinc-100">{{ $component->direction === 'asc' ? '↑' : '↓' }}</span>
                                     @else
-                                        <span class="text-zinc-400">↕</span>
+                                        <span class="text-zinc-400 dark:text-zinc-500">↕</span>
                                     @endif
                                 </button>
                             </th>
@@ -37,7 +37,7 @@
                             <th
                                 scope="col"
                                 style="{{ $meta['style'] }}"
-                                class="border-b border-zinc-200 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 {{ trim($meta['header_class']) }} {{ $column->isMobileHidden() ? 'hidden md:table-cell' : 'table-cell' }}"
+                                class="border-b border-zinc-200 dark:border-zinc-700 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 {{ trim($meta['header_class']) }} {{ $column->isMobileHidden() ? 'hidden md:table-cell' : 'table-cell' }}"
                             >
                                 {{ $column->label() }}
                             </th>
@@ -46,15 +46,16 @@
                 </tr>
             </thead>
 
-            <tbody class="bg-white">
+            <tbody>
                 @forelse ($rows as $row)
                     @php($rowSelected = $component->hasSelection() && $component->isRowSelected($row))
-                    <tr class="border-b border-zinc-100 last:border-b-0 transition {{ $rowSelected ? 'bg-blue-50/50 hover:bg-blue-50' : 'hover:bg-zinc-50/60' }}">
+                    @php($rowBgClass = $component->rowBackgroundClass($loop->iteration, $rowSelected))
+                    <tr class="border-b border-zinc-100 dark:border-zinc-800 last:border-b-0 transition {{ $rowBgClass }} {{ $rowSelected ? 'hover:bg-blue-50 dark:hover:bg-blue-900/30' : 'hover:bg-zinc-100/60 dark:hover:bg-zinc-800/60' }}">
                         @foreach ($columns as $index => $column)
-                            @php($meta = $sticky[$index] ?? ['class' => '', 'header_class' => '', 'style' => ''])
+                            @php($meta = $sticky[$index] ?? ['class' => '', 'header_class' => '', 'style' => '', 'is_sticky' => false])
                             <td
                                 style="{{ $meta['style'] }}"
-                                class="border-b border-zinc-100 px-4 py-4 align-top {{ trim($meta['class']) }} {{ $column->isMobileHidden() ? 'hidden md:table-cell' : 'table-cell' }}"
+                                class="border-b border-zinc-100 dark:border-zinc-800 px-4 py-4 align-top {{ trim($meta['class']) }} {{ ($meta['is_sticky'] ?? false) ? $rowBgClass : '' }} {{ $column->isMobileHidden() ? 'hidden md:table-cell' : 'table-cell' }}"
                             >
                                 @if ($column->isSelectionColumn())
                                     @include('livewire-flux-tables::components.selection-cell', [

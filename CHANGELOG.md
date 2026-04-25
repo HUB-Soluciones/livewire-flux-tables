@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.2.0] - 2026-04-25
 
 ### Breaking Changes
 
@@ -70,3 +70,11 @@ class UsersTable extends FluxTableComponent
 - i18n keys: `Select page (:count)`, `Select records` (added to `en.json` and `es.json`).
 - `--with-selection` flag for `livewire-flux-tables:make` and `livewire-flux-tables:scaffold`.
 - Fix: `TestCase` now sets `view.compiled` so tests work without a pre-created cache directory.
+- Zebra striping support: optional per-component `protected ?bool $striped` property and global `zebra_striping` config key. New `FluxTableComponent::isStriped(): bool` and `FluxTableComponent::rowBackgroundClass(int $iteration, bool $isSelected): string`.
+- Full dark mode across all table views (Tailwind `dark:` classes on wrapper, headers, rows, sort indicators, selection banner, sticky cells). Config keys `table_wrapper_class` and `sticky_header_class` include dark variants out of the box.
+- Configurable selection banner: `selection_banner_class`, `selection_banner_text_class`, `selection_banner_link_class` in config.
+- New config keys: `zebra_odd_class`, `zebra_even_class`, `row_base_class`, `sticky_header_class`.
+
+### Fixed
+
+- Sticky cells now inherit the correct row background (zebra color, selected state, or base) to avoid transparent bleed on horizontal scroll. Implemented via `is_sticky` flag in `StickyColumnManager` metadata, consumed in `table.blade.php`.

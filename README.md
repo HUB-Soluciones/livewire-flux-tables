@@ -213,7 +213,12 @@ public function applyCreatedAtFilter($query, $value): void
 
 ## Selection & Bulk Actions
 
-Add `SelectionColumn::make()` as the first column to enable row selection with a tri-state header dropdown and a bulk-actions toolbar.
+Add `SelectionColumn::make()` as the first column to enable row selection. The package automatically renders a **sky-toned selection banner** above the table with a row counter, "Select all / Clear selection" controls, and **inline bulk action buttons** — no extra wrapper Blade needed.
+
+```blade
+{{-- This is all you need in your view --}}
+<livewire:tables.socios.socios-tabla />
+```
 
 ```php
 use HubSoluciones\LivewireFluxTables\Columns\SelectionColumn;
@@ -221,21 +226,30 @@ use HubSoluciones\LivewireFluxTables\Columns\SelectionColumn;
 public function columns(): array
 {
     return [
-        SelectionColumn::make()->bulkActions([
-            'deleteSelected' => 'Delete selected',
-            'exportSelected' => 'Export selected',
-        ]),
+        SelectionColumn::make()
+            ->resource('socio', 'socios')       // singular / plural for banner copy
+            ->bulkActions([
+                // string form — backwards-compatible
+                'markInactive' => 'Mark inactive',
+
+                // array form — adds icon and variant
+                'export' => [
+                    'label'   => 'Export selected',
+                    'icon'    => 'arrow-down-tray', // generic SVG; publish view for real icons
+                    'variant' => 'primary',          // 'primary' | 'danger' | 'default'
+                ],
+            ]),
         Column::make('Name', 'name')->sortable(),
         // ...
     ];
 }
 
-public function deleteSelected(): void
+public function export(): void
 {
     // $selectAllRecords=true means all filtered records are selected (not just the page).
     // Use allFilteredKeys() to get all matching IDs without pagination.
     $ids = $this->selectAllRecords ? $this->allFilteredKeys() : $this->selectedKeys;
-    User::whereIn('id', $ids)->delete();
+    // act on $ids...
     $this->clearSelection();
 }
 ```
@@ -243,6 +257,15 @@ public function deleteSelected(): void
 The header checkbox opens a dropdown with "Select page (N)", "Select all M records", and "Clear selection". Rows can be conditionally disabled with `->selectableWhen(fn ($row) => ...)`.
 
 **Defaults** (overridable): sticky-left, width 3rem, centered, not hideable. Use `->notSticky()` to remove the sticky behavior.
+
+**Customize banner colors** (no need to publish the view):
+
+```php
+// config/livewire-flux-tables.php
+'selection_banner_class'      => '...', // outer wrapper — default: sky-50/sky-950 with border
+'selection_banner_text_class' => '...', // counter text — default: text-sky-700/sky-300
+'selection_banner_link_class' => '...', // links — default: sky underlined
+```
 
 **Generate with:** `php artisan livewire-flux-tables:make MyTable --with-selection`
 
@@ -260,8 +283,12 @@ After publishing, edit `config/livewire-flux-tables.php`:
 'table_scroll_class'  => 'overflow-x-auto',
 'empty_state_heading' => 'No results',
 'empty_state_message' => '...',
-'pagination'          => 'length_aware', // or 'simple'
+'pagination'          => 'length_aware',  // or 'simple'
 'stubs_path'          => 'stubs/livewire-flux-tables',
+// Selection banner (sky by default — override without publishing the view):
+'selection_banner_class'      => '...',   // outer wrapper classes
+'selection_banner_text_class' => '...',   // counter text classes
+'selection_banner_link_class' => '...',   // "Select all" / "Clear selection" link classes
 ```
 
 ## Query String Persistence
