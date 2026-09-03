@@ -4,7 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Livewire Flux Tables — Demo</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="{{ url('/flux-demo.css') }}">
+    <style>
+        /* Sólo para este demo (sin build de Vite): el navegador ignora los
+           @source/@theme de flux.css (at-rules de Tailwind) y ui-table-scroll-area
+           no trae una regla de display propia. En una app real esto lo cubre
+           `@import 'flux'` en app.css. */
+        :root { --color-accent: #27272a; --color-accent-content: #27272a; --color-accent-foreground: #fff; }
+        :root.dark { --color-accent: #fff; --color-accent-content: #fff; --color-accent-foreground: #27272a; }
+        ui-table-scroll-area { display: block; }
+    </style>
+    @fluxAppearance
     @livewireStyles
 </head>
 <body class="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
@@ -26,5 +37,6 @@
     </main>
 
     @livewireScripts
+    @fluxScripts
 </body>
 </html>

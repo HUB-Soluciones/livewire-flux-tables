@@ -2,6 +2,7 @@
 
 namespace HubSoluciones\LivewireFluxTables\Tests;
 
+use Flux\FluxServiceProvider;
 use HubSoluciones\LivewireFluxTables\LivewireFluxTablesServiceProvider;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -13,7 +14,7 @@ abstract class TestCase extends Orchestra
     protected function getEnvironmentSetUp($app): void
     {
         $app['config']->set('app.key', 'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=');
-        $viewCachePath = sys_get_temp_dir().'/livewire-flux-tables-views';
+        $viewCachePath = sys_get_temp_dir().'/livewire-flux-tables-views-'.getmypid();
         if (! is_dir($viewCachePath)) {
             mkdir($viewCachePath, 0755, true);
         }
@@ -32,6 +33,7 @@ abstract class TestCase extends Orchestra
     {
         return [
             LivewireServiceProvider::class,
+            FluxServiceProvider::class,
             LivewireFluxTablesServiceProvider::class,
         ];
     }

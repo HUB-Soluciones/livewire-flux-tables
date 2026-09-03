@@ -1,0 +1,64 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.1', '8.2', '8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, dom, sqlite3, pdo_sqlite
+          coverage: none
+      - uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: highest
+      - run: composer test
+
+  flux-pro:
+    name: Flux Pro integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, sqlite3, pdo_sqlite
+          coverage: none
+      - name: Detect Flux Pro credentials
+        id: flux
+        env:
+          FLUX_USERNAME: ${{ secrets.FLUX_USERNAME }}
+          FLUX_LICENSE_KEY: ${{ secrets.FLUX_LICENSE_KEY }}
+        run: |
+          if [ -n "$FLUX_USERNAME" ] && [ -n "$FLUX_LICENSE_KEY" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Configure Flux Pro repository
+        if: steps.flux.outputs.enabled == 'true'
+        env:
+          FLUX_USERNAME: ${{ secrets.FLUX_USERNAME }}
+          FLUX_LICENSE_KEY: ${{ secrets.FLUX_LICENSE_KEY }}
+        run: |
+          composer config http-basic.composer.fluxui.dev "$FLUX_USERNAME" "$FLUX_LICENSE_KEY"
+          composer config repositories.flux-pro composer https://composer.fluxui.dev
+      - name: Install Flux Pro
+        if: steps.flux.outputs.enabled == 'true'
+        run: composer require --dev livewire/flux-pro:^2.0 --no-interaction --prefer-dist
+      - name: Test Flux Pro renderer
+        if: steps.flux.outputs.enabled == 'true'
+        run: composer test
+      - name: Skip notice
+        if: steps.flux.outputs.enabled != 'true'
+        run: echo "Flux Pro tests skipped because repository secrets are unavailable."

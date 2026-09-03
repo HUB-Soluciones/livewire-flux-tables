@@ -27,7 +27,8 @@ workbench:
     - create-sqlite-db
     - db-wipe
     - migrate-fresh
-    - db-seed
+    - db-seed:
+        --class: Workbench\Database\Seeders\DatabaseSeeder
   assets:
     - laravel-assets
   sync:

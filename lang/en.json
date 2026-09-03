@@ -19,5 +19,13 @@
     "Select records": "Select records",
     "All :count :resource are selected.": "All :count :resource are selected.",
     ":count :resource selected on this page.": ":count :resource selected on this page.",
-    "Select all :count :resource": "Select all :count :resource"
+    "Select all :count :resource": "Select all :count :resource",
+    "Sort records": "Sort records",
+    "Sort by": "Sort by",
+    "Ascending": "Ascending",
+    "Descending": "Descending",
+    "Show details": "Show details",
+    "Hide details": "Hide details",
+    "Select record :key": "Select record :key",
+    "Loading records": "Loading records"
 }

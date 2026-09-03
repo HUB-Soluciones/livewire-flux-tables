@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0] - 2026-09-01
+
+### Added
+
+- Livewire 4 is now the minimum supported version and Flux UI 2 is a required dependency.
+- Flux Pro is detected through `Flux::pro()` with `auto`, `base`, and `pro` configuration modes.
+- Multiple sticky columns on either side with deterministic cumulative offsets and edge shadows.
+- Mobile card layout with explicit `mobileSummary()`, progressive disclosure, keyboard-accessible controls, and validated mobile sorting.
+- Livewire 4 computed paginator caching and loading-state feedback.
+- CI coverage for PHP 8.2–8.4 and an optional Flux Pro job enabled only when license secrets are present.
+
+### Fixed
+
+- Flux tables now always render with the free `flux:table.*` components. Flux Pro is used only
+  for the optional mobile sort `listbox`; base installations use the native select fallback.
+
+
 All notable changes to this project will be documented in this file.
 
 ## [0.2.0] - 2026-04-25

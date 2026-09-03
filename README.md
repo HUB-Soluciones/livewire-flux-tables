@@ -6,13 +6,40 @@ A Laravel package for building reusable, Livewire-first data tables styled for F
 
 - PHP 8.1+
 - Laravel 10+
-- Livewire 3.5.19+ or 4.0+
-- Tailwind CSS 4.0+
+- Livewire 4.0+
+- Flux UI 2.0+ (`livewire/flux`)
+- Tailwind CSS 4.2+
 
 ## Installation
 
 ```bash
 composer require hubsoluciones/livewire-flux-tables
+```
+
+The package requires Livewire 4 and Flux UI 2. Tables always use Flux UI's free
+`flux:table` components. If `livewire/flux-pro` is installed and activated, the package can
+optionally use the Pro `listbox` variant for the mobile sort control. Set `flux_tier` to
+`base` to always use a native `<select>`, `auto` to detect Pro automatically, or `pro` to
+require Pro and fail fast when it is missing.
+
+Include Flux's assets in your application layout:
+
+```blade
+@fluxAppearance
+@livewireStyles
+@livewireScripts
+@fluxScripts
+```
+
+Import Flux's stylesheet and register the package views as a Tailwind source in
+`resources/css/app.css`:
+
+```css
+@import 'tailwindcss';
+@import '../../vendor/livewire/flux/dist/flux.css';
+@source '../../vendor/hubsoluciones/livewire-flux-tables/resources/views/**/*.blade.php';
+
+@custom-variant dark (&:where(.dark, .dark *));
 ```
 
 Optionally publish the config, views, or stubs:
@@ -129,7 +156,38 @@ Column::make('Label', 'field_name')
     ->mobileHidden()                    // hide on small screens
     ->mobileLabel('Alt label')          // override label on mobile
     ->stackOnMobile()                   // stack cell vertically on mobile
+    ->mobileSummary()                   // keep in the always-visible mobile card summary
 ```
+
+On small screens tables render as accessible, single-open cards by default. The first two
+visible columns are used as the summary when no column is marked with `mobileSummary()`;
+`stackOnMobile()` remains supported as a legacy summary hint. Set `mobile_layout` to `table`
+to retain the horizontal table on mobile, or override `protected ?string $mobileLayout` on a
+component.
+
+Any number of columns can be fixed on either side. Sticky offsets are calculated from the
+declared widths, so adjacent fixed columns do not overlap:
+
+```php
+Column::make('Name', 'name')->sticky('left')->width('14rem')->mobileSummary(),
+Column::make('Status', 'status')->sticky('left')->width('8rem')->mobileSummary(),
+Column::make('Actions', 'actions')->sticky('right')->width('7rem'),
+```
+
+The mobile card toolbar validates sort fields through `setSortField()` and uses Flux buttons
+for direction changes. Interactive controls use Livewire 4's automatic `data-loading` state,
+and the row
+query is a `#[Computed]` property so the paginator is reused during a request.
+
+Tables can also use Livewire 4's deferred loading without extra component code:
+
+```blade
+<livewire:users-table defer />
+{{-- Or load only when the table enters the viewport: --}}
+<livewire:users-table lazy />
+```
+
+Both modes display the package's accessible table skeleton while data loads.
 
 ### Custom Sort or Search Logic
 
@@ -213,7 +271,7 @@ public function applyCreatedAtFilter($query, $value): void
 
 ## Selection & Bulk Actions
 
-Add `SelectionColumn::make()` as the first column to enable row selection. The package automatically renders a **sky-toned selection banner** above the table with a row counter, "Select all / Clear selection" controls, and **inline bulk action buttons** — no extra wrapper Blade needed.
+Add `SelectionColumn::make()` as the first column to enable row selection. The package automatically renders a **neutral selection banner** above the table with a row counter, "Select all / Clear selection" controls, and **inline bulk action buttons** — no extra wrapper Blade needed.
 
 ```blade
 {{-- This is all you need in your view --}}
@@ -235,7 +293,7 @@ public function columns(): array
                 // array form — adds icon and variant
                 'export' => [
                     'label'   => 'Export selected',
-                    'icon'    => 'arrow-down-tray', // generic SVG; publish view for real icons
+                    'icon'    => 'arrow-down-tray', // any flux:icon name
                     'variant' => 'primary',          // 'primary' | 'danger' | 'default'
                 ],
             ]),
@@ -256,15 +314,15 @@ public function export(): void
 
 The header checkbox opens a dropdown with "Select page (N)", "Select all M records", and "Clear selection". Rows can be conditionally disabled with `->selectableWhen(fn ($row) => ...)`.
 
-**Defaults** (overridable): sticky-left, width 3rem, centered, not hideable. Use `->notSticky()` to remove the sticky behavior.
+**Defaults** (overridable): sticky-left, width 4.25rem, centered, not hideable. Use `->notSticky()` to remove the sticky behavior.
 
 **Customize banner colors** (no need to publish the view):
 
 ```php
 // config/livewire-flux-tables.php
-'selection_banner_class'      => '...', // outer wrapper — default: sky-50/sky-950 with border
-'selection_banner_text_class' => '...', // counter text — default: text-sky-700/sky-300
-'selection_banner_link_class' => '...', // links — default: sky underlined
+'selection_banner_class'      => '...', // outer wrapper — default: neutral card matching the toolbar
+'selection_banner_text_class' => '...', // counter text — default: text-zinc-700/zinc-200
+'selection_banner_link_class' => '...', // links — default: zinc underlined on hover
 ```
 
 **Generate with:** `php artisan livewire-flux-tables:make MyTable --with-selection`
@@ -279,13 +337,15 @@ After publishing, edit `config/livewire-flux-tables.php`:
 'persist_query_string' => true,       // sync state to URL query params
 'search_placeholder' => 'Search...',
 'default_sticky_width' => '12rem',
+'flux_tier'           => 'auto', // mobile sort: auto | base | pro
+'mobile_layout'      => 'cards', // cards | table
 'table_wrapper_class' => '...',       // Tailwind classes for the outer wrapper
 'table_scroll_class'  => 'overflow-x-auto',
 'empty_state_heading' => 'No results',
 'empty_state_message' => '...',
 'pagination'          => 'length_aware',  // or 'simple'
 'stubs_path'          => 'stubs/livewire-flux-tables',
-// Selection banner (sky by default — override without publishing the view):
+// Selection banner (neutral by default — override without publishing the view):
 'selection_banner_class'      => '...',   // outer wrapper classes
 'selection_banner_text_class' => '...',   // counter text classes
 'selection_banner_link_class' => '...',   // "Select all" / "Clear selection" link classes
@@ -357,6 +417,16 @@ phpunit tests/Feature/FluxTableComponentTest.php
 # Single method
 phpunit tests/Feature/FluxTableComponentTest.php --filter test_global_search_filters_only_searchable_columns
 ```
+
+Mobile browser coverage uses Playwright and Chromium:
+
+```bash
+npm install
+npm run test:e2e:install
+npm run test:e2e
+```
+
+Run `npm run test:e2e:ui` to inspect and debug the scenario in Playwright's interactive browser UI. The test generates a full-page mobile screenshot at `test-results/mobile-table-complete.png`.
 
 ## License
 

@@ -12,6 +12,8 @@ class TableConfiguration
         public string $pagination,
         public string $emptyStateHeading,
         public string $emptyStateMessage,
+        public string $mobileLayout = 'cards',
+        public string $fluxTier = 'auto',
     ) {
     }
 }

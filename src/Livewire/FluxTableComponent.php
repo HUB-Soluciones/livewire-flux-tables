@@ -16,6 +16,7 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Livewire\Component;
+use Livewire\Attributes\Computed;
 use Livewire\WithPagination;
 
 abstract class FluxTableComponent extends Component
@@ -44,11 +45,17 @@ abstract class FluxTableComponent extends Component
 
     protected ?bool $striped = null;
 
+    /** @var 'cards'|'table'|null */
+    protected ?string $mobileLayout = null;
+
     protected QueryPipeline $queryPipeline;
 
     protected StickyColumnManager $stickyColumnManager;
 
     protected CellRenderer $cellRenderer;
+
+    /** Per-render cache shared by desktop and mobile representations. */
+    protected array $cellCache = [];
 
     public function boot(
         QueryPipeline $queryPipeline,
@@ -118,7 +125,7 @@ abstract class FluxTableComponent extends Component
 
     public function sortBy(string $field): void
     {
-        $column = collect($this->resolvedColumns())->first(
+        $column = collect($this->resolvedColumns)->first(
             fn (Column $candidate) => $candidate->field() === $field && $candidate->isSortable()
         );
 
@@ -133,6 +140,28 @@ abstract class FluxTableComponent extends Component
             $this->direction = 'asc';
         }
 
+        $this->resetPage();
+    }
+
+    /** Set the mobile sort field after validating it against declared columns. */
+    public function setSortField(?string $field): void
+    {
+        if ($field === null || $field === '') {
+            $this->clearSort();
+
+            return;
+        }
+
+        $this->sortBy($field);
+    }
+
+    public function toggleSortDirection(): void
+    {
+        if ($this->sanitizeSort() === null) {
+            return;
+        }
+
+        $this->direction = $this->direction === 'asc' ? 'desc' : 'asc';
         $this->resetPage();
     }
 
@@ -229,6 +258,7 @@ abstract class FluxTableComponent extends Component
         $this->clearFilters();
     }
 
+    #[Computed]
     public function resolvedColumns(): array
     {
         return array_values(array_filter(
@@ -237,22 +267,74 @@ abstract class FluxTableComponent extends Component
         ));
     }
 
+    #[Computed]
     public function visibleColumns(): array
     {
         if (empty($this->hiddenColumns)) {
-            return $this->resolvedColumns();
+            return $this->resolvedColumns;
         }
 
         return array_values(array_filter(
-            $this->resolvedColumns(),
+            $this->resolvedColumns,
             fn (Column $col) => ! in_array($col->field(), $this->hiddenColumns, true)
         ));
     }
 
+    /** Columns that remain visible in the mobile card header. */
+    #[Computed]
+    public function mobileSummaryColumns(): array
+    {
+        $columns = array_values(array_filter(
+            $this->visibleColumns,
+            fn (Column $column) => ! $column->isSelectionColumn() && ! $column->isMobileHidden()
+        ));
+
+        $explicit = array_values(array_filter($columns, fn (Column $column) => $column->isMobileSummary()));
+
+        if ($explicit !== []) {
+            return $explicit;
+        }
+
+        $stacked = array_values(array_filter($columns, fn (Column $column) => $column->shouldStackOnMobile()));
+
+        return $stacked !== [] ? $stacked : array_slice($columns, 0, 2);
+    }
+
+    /** Columns revealed when a mobile card is expanded. */
+    #[Computed]
+    public function mobileDetailColumns(): array
+    {
+        $summaryKeys = array_map(fn (Column $column) => $column->key(), $this->mobileSummaryColumns);
+
+        return array_values(array_filter(
+            $this->visibleColumns,
+            fn (Column $column) => ! $column->isSelectionColumn()
+                && ! $column->isMobileHidden()
+                && ! in_array($column->key(), $summaryKeys, true)
+        ));
+    }
+
+    public function mobileLayout(): string
+    {
+        $layout = $this->mobileLayout ?? config('livewire-flux-tables.mobile_layout', 'cards');
+
+        return in_array($layout, ['cards', 'table'], true) ? $layout : 'cards';
+    }
+
+    #[Computed]
+    public function mobileSortColumns(): array
+    {
+        return array_values(array_filter(
+            $this->visibleColumns,
+            fn (Column $column) => ! $column->isSelectionColumn() && $column->isSortable()
+        ));
+    }
+
+    #[Computed]
     public function hideableColumns(): array
     {
         return array_values(array_filter(
-            $this->resolvedColumns(),
+            $this->resolvedColumns,
             fn (Column $col) => $col->isHideable()
         ));
     }
@@ -276,7 +358,7 @@ abstract class FluxTableComponent extends Component
         $chips = [];
 
         if ($this->sort && $this->sanitizeSort() !== null) {
-            $column = collect($this->resolvedColumns())
+            $column = collect($this->resolvedColumns)
                 ->first(fn (Column $col) => $col->field() === $this->sort);
 
             if ($column) {
@@ -330,6 +412,7 @@ abstract class FluxTableComponent extends Component
         );
     }
 
+    #[Computed]
     public function rows(): Paginator
     {
         return $this->queryPipeline->process($this->dataSource(), $this);
@@ -338,14 +421,20 @@ abstract class FluxTableComponent extends Component
     public function stickyMetadata(): array
     {
         return $this->stickyColumnManager->map(
-            $this->visibleColumns(),
+            $this->visibleColumns,
             config('livewire-flux-tables.default_sticky_width', '12rem')
         );
     }
 
     public function renderCell(Column $column, mixed $row): array
     {
-        return $this->cellRenderer->render($column, $row, $this);
+        $rowKey = $this->resolveRowKey($row);
+        $rowCacheKey = $rowKey !== null
+            ? (string) $rowKey
+            : (is_object($row) ? 'object:'.spl_object_id($row) : 'value:'.sha1(serialize($row)));
+        $cacheKey = $rowCacheKey.'|'.$column->key();
+
+        return $this->cellCache[$cacheKey] ??= $this->cellRenderer->render($column, $row, $this);
     }
 
     public function searchPlaceholder(): string
@@ -408,6 +497,8 @@ abstract class FluxTableComponent extends Component
             pagination: $this->paginationMethod(),
             emptyStateHeading: $this->emptyHeading(),
             emptyStateMessage: $this->emptyMessage(),
+            mobileLayout: $this->mobileLayout(),
+            fluxTier: (string) config('livewire-flux-tables.flux_tier', 'auto'),
         );
     }
 
@@ -441,7 +532,7 @@ abstract class FluxTableComponent extends Component
 
     protected function sanitizeSort(): ?string
     {
-        $allowed = collect($this->resolvedColumns())
+        $allowed = collect($this->resolvedColumns)
             ->filter(fn (Column $column) => $column->isSortable())
             ->map(fn (Column $column) => $column->field())
             ->all();
@@ -505,7 +596,7 @@ abstract class FluxTableComponent extends Component
 
     public function selectionColumn(): ?SelectionColumn
     {
-        foreach ($this->resolvedColumns() as $column) {
+        foreach ($this->resolvedColumns as $column) {
             if ($column instanceof SelectionColumn) {
                 return $column;
             }
@@ -556,7 +647,7 @@ abstract class FluxTableComponent extends Component
 
     public function totalRecords(): ?int
     {
-        $rows = $this->rows();
+        $rows = $this->rows;
 
         return method_exists($rows, 'total') ? $rows->total() : null;
     }
@@ -564,6 +655,34 @@ abstract class FluxTableComponent extends Component
     public function resolveRowKeyField(): string
     {
         return $this->rowKeyField();
+    }
+
+    public function mobileRowId(mixed $row): string
+    {
+        return 'flux-table-row-'.substr(sha1((string) $this->resolveRowKey($row)), 0, 16);
+    }
+
+    public function usesFluxPro(): bool
+    {
+        $tier = config('livewire-flux-tables.flux_tier', 'auto');
+
+        if (! in_array($tier, ['auto', 'base', 'pro'], true)) {
+            throw new \InvalidArgumentException('Flux tier must be auto, base, or pro.');
+        }
+
+        if ($tier === 'base') {
+            return false;
+        }
+
+        $hasPro = class_exists(\Flux\Flux::class)
+            && app()->bound('flux')
+            && (bool) \Flux\Flux::pro();
+
+        if ($tier === 'pro' && ! $hasPro) {
+            throw new \RuntimeException('Flux Pro is required when livewire-flux-tables.flux_tier is set to pro.');
+        }
+
+        return $hasPro;
     }
 
     protected function rowKeyField(): string
@@ -590,7 +709,7 @@ abstract class FluxTableComponent extends Component
 
     protected function getPageKeys(): array
     {
-        $rows = $this->rows();
+        $rows = $this->rows;
         $items = method_exists($rows, 'items') ? $rows->items() : iterator_to_array($rows);
         $keys = [];
 
@@ -602,6 +721,16 @@ abstract class FluxTableComponent extends Component
         }
 
         return $keys;
+    }
+
+    public function pageKeys(): array
+    {
+        return $this->getPageKeys();
+    }
+
+    public function placeholder(array $params = [])
+    {
+        return view('livewire-flux-tables::components.table-placeholder');
     }
 
     protected function chipValueLabel(Filter $filter, mixed $value): string
@@ -632,13 +761,21 @@ abstract class FluxTableComponent extends Component
 
     public function render()
     {
-        $visibleColumns = $this->visibleColumns();
+        $this->cellCache = [];
+        $visibleColumns = $this->visibleColumns;
 
         return view($this->tableView ?: 'livewire-flux-tables::livewire.table-component', [
+            'table' => $this,
+            // Kept for custom table views created before the internal Blade context
+            // moved to `$table` to avoid colliding with anonymous Flux components.
             'component' => $this,
             'columns' => $visibleColumns,
             'filters' => $this->resolvedFilters(),
-            'rows' => $this->rows(),
+            'rows' => $this->rows,
+            'mobileSummary' => $this->mobileSummaryColumns,
+            'mobileDetails' => $this->mobileDetailColumns,
+            'mobileSortColumns' => $this->mobileSortColumns,
+            'fluxPro' => $this->usesFluxPro(),
             'sticky' => $this->stickyColumnManager->map(
                 $visibleColumns,
                 config('livewire-flux-tables.default_sticky_width', '12rem')

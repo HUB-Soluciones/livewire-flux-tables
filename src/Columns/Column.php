@@ -34,6 +34,8 @@ class Column
 
     protected bool $stackOnMobile = false;
 
+    protected bool $mobileSummary = false;
+
     protected bool $allowHtml = false;
 
     protected bool $hideable = true;
@@ -105,6 +107,10 @@ class Column
 
     public function sticky(string $position = 'left'): static
     {
+        if (! in_array($position, ['left', 'right'], true)) {
+            throw new \InvalidArgumentException("Sticky position must be 'left' or 'right'.");
+        }
+
         $this->fixedPosition = $position;
 
         return $this;
@@ -146,6 +152,14 @@ class Column
     public function stackOnMobile(bool $stack = true): static
     {
         $this->stackOnMobile = $stack;
+
+        return $this;
+    }
+
+    /** Mark this column as part of the always-visible mobile card summary. */
+    public function mobileSummary(bool $enabled = true): static
+    {
+        $this->mobileSummary = $enabled;
 
         return $this;
     }
@@ -228,6 +242,11 @@ class Column
     public function shouldStackOnMobile(): bool
     {
         return $this->stackOnMobile;
+    }
+
+    public function isMobileSummary(): bool
+    {
+        return $this->mobileSummary;
     }
 
     public function mobileLabelValue(): ?string

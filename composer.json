@@ -15,12 +15,16 @@
         "illuminate/pagination": "^10.0|^11.0|^12.0|^13.0",
         "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
         "illuminate/view": "^10.0|^11.0|^12.0|^13.0",
-        "livewire/livewire": "^3.5.19|^4.0"
+        "livewire/livewire": "^4.0",
+        "livewire/flux": "^2.0"
     },
     "require-dev": {
         "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
         "orchestra/workbench": "^9.15",
         "phpunit/phpunit": "^10.0|^11.0|^12.0"
+    },
+    "suggest": {
+        "livewire/flux-pro": "Enable Flux Pro components when your Flux license is active (requires Composer credentials)."
     },
     "autoload": {
         "psr-4": {

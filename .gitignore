@@ -1,4 +1,7 @@
 /vendor/
+/node_modules/
+/playwright-report/
+/test-results/
 composer.lock
 .phpunit.result.cache
 .env
@@ -6,3 +9,4 @@ composer.lock
 CLAUDE.md
 workbench/database/database.sqlite
 workbench/bootstrap/
+/workbench/storage

@@ -19,7 +19,7 @@ class SelectionColumn extends Column
     {
         parent::__construct('', '__selection__');
 
-        $this->width = '3rem';
+        $this->width = '4.25rem';
         $this->align = 'center';
         $this->fixedPosition = 'left';
         $this->hideable = false;

@@ -1,12 +1,19 @@
 @php
-    $checked = $component->isRowSelected($row);
-    $disabled = ! $column->isRowSelectable($row, $component);
+    $checked = $table->isRowSelected($row);
+    $disabled = ! $column->isRowSelectable($row, $table);
+    $selectionScope = ($mobile ?? false) ? 'mobile' : 'desktop';
+    $selectionKey = $table->resolveRowKey($row);
 @endphp
 
-<input
-    type="checkbox"
-    wire:click="toggleRow('{{ $component->resolveRowKey($row) }}')"
-    {{ $checked ? 'checked' : '' }}
-    {{ $disabled ? 'disabled' : '' }}
-    class="h-4 w-4 cursor-pointer rounded border-zinc-300 dark:border-zinc-600 text-blue-600 transition focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 dark:focus:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
-/>
+{{-- El wire:key va en este wrapper (no en <flux:checkbox> directamente): Livewire
+     inyecta PHP crudo antes de cualquier atributo wire:key, lo que rompe el
+     compilador de tags de Flux si se coloca sobre la propia etiqueta flux:*. --}}
+<span wire:key="selection-{{ $selectionScope }}-{{ $selectionKey }}-{{ $checked ? 'selected' : 'unselected' }}" class="inline-flex">
+    <flux:checkbox
+        aria-label="{{ __('Select record :key', ['key' => $selectionKey]) }}"
+        wire:click="toggleRow('{{ $selectionKey }}')"
+        :checked="$checked"
+        :disabled="$disabled"
+        class="data-loading:pointer-events-none data-loading:opacity-50"
+    />
+</span>

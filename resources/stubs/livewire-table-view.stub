@@ -1,9 +1,13 @@
 <div>
     @include('livewire-flux-tables::livewire.table-component', [
         'component' => $this,
-        'columns' => $this->resolvedColumns(),
+        'columns' => $this->resolvedColumns,
         'filters' => $this->resolvedFilters(),
-        'rows' => $this->rows(),
+        'rows' => $this->rows,
+        'mobileSummary' => $this->mobileSummaryColumns,
+        'mobileDetails' => $this->mobileDetailColumns,
+        'mobileSortColumns' => $this->mobileSortColumns,
+        'fluxPro' => $this->usesFluxPro(),
         'sticky' => $this->stickyMetadata(),
     ])
 </div>

@@ -185,7 +185,7 @@ class MakeFluxTableCommand extends Command
         return <<<PHP
         return [{$selectionColumn}
             Column::make('ID', 'id')->sortable(),
-            Column::make('Nombre', 'name')->searchable()->sortable()->sticky()->width('14rem')->stackOnMobile(),
+            Column::make('Nombre', 'name')->searchable()->sortable()->sticky()->width('14rem')->mobileSummary(),
             Column::make('Email', 'email')->searchable()->sortable(),
             Column::make('Creado', 'created_at')->sortable()->mobileHidden(),{$statusColumn}
         ];

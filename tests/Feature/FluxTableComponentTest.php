@@ -6,9 +6,13 @@ use HubSoluciones\LivewireFluxTables\Tests\Fixtures\Livewire\UsersTable;
 use HubSoluciones\LivewireFluxTables\Tests\Fixtures\Livewire\UsersTableStriped;
 use HubSoluciones\LivewireFluxTables\Tests\Fixtures\Models\FixtureUser;
 use HubSoluciones\LivewireFluxTables\Tests\TestCase;
+use HubSoluciones\LivewireFluxTables\Livewire\FluxTableComponent;
 use HubSoluciones\LivewireFluxTables\Query\QueryPipeline;
 use HubSoluciones\LivewireFluxTables\Rendering\CellRenderer;
 use HubSoluciones\LivewireFluxTables\Rendering\StickyColumnManager;
+use HubSoluciones\LivewireFluxTables\Columns\Column;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 
 class FluxTableComponentTest extends TestCase
@@ -264,5 +268,189 @@ class FluxTableComponentTest extends TestCase
 
         $this->assertStringNotContainsString('bg-white', $metadata[1]['class']);
         $this->assertTrue($metadata[1]['is_sticky']);
+    }
+
+    public function test_mobile_summary_and_details_are_resolved_without_duplicates(): void
+    {
+        $component = Livewire::test(UsersTable::class)->instance();
+
+        $summary = $component->mobileSummaryColumns();
+        $details = $component->mobileDetailColumns();
+
+        $this->assertSame(['name'], array_map(fn (Column $column) => $column->field(), $summary));
+        $this->assertSame(['id', 'email', 'role', 'created_at'], array_map(fn (Column $column) => $column->field(), $details));
+    }
+
+    public function test_mobile_cards_render_a_valid_alpine_row_key_expression(): void
+    {
+        Livewire::test(UsersTable::class)
+            ->assertSeeHtml('x-data="{ rowKey: \'1\' }"')
+            ->assertDontSeeHtml("x-data='{ rowKey:")
+            ->assertSeeHtml('x-show="expanded ===');
+    }
+
+    public function test_mobile_cards_safely_encode_special_characters_in_row_keys(): void
+    {
+        Livewire::test(MobileCardsWithSpecialRowKey::class)
+            ->assertSeeHtml('x-data="{ rowKey: \'O\\u0027Reilly \\u0026 \\u0022quoted\\u0022\' }"');
+    }
+
+    public function test_search_uses_the_full_mobile_toolbar_width(): void
+    {
+        Livewire::test(UsersTable::class)
+            ->assertSeeHtml('class="relative min-w-0 basis-full sm:basis-auto sm:flex-1 sm:max-w-xs"');
+    }
+
+    public function test_mobile_sort_actions_validate_declared_sortable_fields(): void
+    {
+        $component = Livewire::test(UsersTable::class)
+            ->call('setSortField', 'email')
+            ->assertSet('sort', 'email');
+
+        $component->call('toggleSortDirection')->assertSet('direction', 'desc');
+        $component->call('setSortField', 'not_a_column')->assertSet('sort', 'email');
+        $component->call('setSortField', null)->assertSet('sort', null);
+    }
+
+    public function test_multiple_sticky_columns_accumulate_offsets_on_both_sides(): void
+    {
+        $manager = app(StickyColumnManager::class);
+        $metadata = $manager->map([
+            Column::make('A', 'a')->sticky('left')->width('4rem'),
+            Column::make('B', 'b')->sticky('left')->width('6rem'),
+            Column::make('C', 'c'),
+            Column::make('D', 'd')->sticky('right')->width('5rem'),
+            Column::make('E', 'e')->sticky('right')->width('7rem'),
+        ]);
+
+        $this->assertStringContainsString('left: 0px', $metadata[0]['style']);
+        $this->assertStringContainsString('left: calc(0px + 4rem)', $metadata[1]['style']);
+        $this->assertStringContainsString('right: 0px', $metadata[4]['style']);
+        $this->assertStringContainsString('right: calc(0px + 7rem)', $metadata[3]['style']);
+        $this->assertSame('left', $metadata[1]['sticky_edge']);
+        $this->assertSame('right', $metadata[3]['sticky_edge']);
+    }
+
+    public function test_sticky_rejects_unknown_positions(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        Column::make('Invalid')->sticky('top');
+    }
+
+    public function test_flux_pro_detection_can_be_forced_to_base(): void
+    {
+        config()->set('livewire-flux-tables.flux_tier', 'base');
+
+        $this->assertFalse(Livewire::test(UsersTable::class)->instance()->usesFluxPro());
+    }
+
+    public function test_flux_pro_mode_fails_with_an_actionable_message_when_unavailable(): void
+    {
+        if (\Flux\Flux::pro()) {
+            $this->markTestSkipped('Flux Pro is installed in this test environment.');
+        }
+
+        config()->set('livewire-flux-tables.flux_tier', 'pro');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Flux Pro is required');
+
+        $component = app(UsersTable::class);
+        $component->boot(
+            app(QueryPipeline::class),
+            app(StickyColumnManager::class),
+            app(CellRenderer::class),
+        );
+        $component->mount();
+        $component->usesFluxPro();
+    }
+
+    public function test_flux_table_renderer_compiles_when_pro_is_available(): void
+    {
+        if (! \Flux\Flux::pro()) {
+            $this->markTestSkipped('Flux Pro credentials are not available in this test environment.');
+        }
+
+        config()->set('livewire-flux-tables.flux_tier', 'auto');
+
+        Livewire::test(UsersTable::class)
+            ->assertSeeHtml('data-flux-table');
+    }
+
+    public function test_invalid_flux_tier_is_rejected(): void
+    {
+        config()->set('livewire-flux-tables.flux_tier', 'enterprise');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Flux tier must be auto, base, or pro');
+
+        $component = app(UsersTable::class);
+        $component->boot(
+            app(QueryPipeline::class),
+            app(StickyColumnManager::class),
+            app(CellRenderer::class),
+        );
+        $component->mount();
+        $component->usesFluxPro();
+    }
+
+    public function test_paginator_query_is_reused_throughout_a_render(): void
+    {
+        $queries = [];
+
+        DB::listen(function (QueryExecuted $query) use (&$queries): void {
+            if (str_contains($query->sql, 'fixture_users')) {
+                $queries[] = $query->sql;
+            }
+        });
+
+        Livewire::test(UsersTable::class)->assertSee('Ana Gomez');
+
+        $this->assertCount(2, $queries, 'A render should execute one count query and one page query.');
+    }
+
+    public function test_lazy_placeholder_is_accessible(): void
+    {
+        $component = Livewire::test(UsersTable::class)->instance();
+        $html = $component->placeholder()->render();
+
+        $this->assertStringContainsString('role="status"', $html);
+        $this->assertStringContainsString('Loading records', $html);
+    }
+
+    public function test_base_renderer_uses_flux_table_and_base_components(): void
+    {
+        config()->set('livewire-flux-tables.flux_tier', 'base');
+
+        Livewire::test(UsersTable::class)
+            ->assertSeeHtml('data-flux-table')
+            ->assertSeeHtml('data-flux-button')
+            ->assertSeeHtml('data-flux-card');
+    }
+}
+
+class MobileCardsWithSpecialRowKey extends FluxTableComponent
+{
+    public function records(): array
+    {
+        return [[
+            'key' => 'O\'Reilly & "quoted"',
+            'name' => 'Special key',
+            'email' => 'special@example.test',
+        ]];
+    }
+
+    public function columns(): array
+    {
+        return [
+            Column::make('Name', 'name')->mobileSummary(),
+            Column::make('Email', 'email'),
+        ];
+    }
+
+    protected function rowKeyField(): string
+    {
+        return 'key';
     }
 }

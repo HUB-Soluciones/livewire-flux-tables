@@ -7,7 +7,12 @@ return [
     'persist_query_string' => true,
     'search_placeholder' => null, // null = use translation. Set a string to override.
     'default_sticky_width' => '12rem',
+    // Controls only the mobile sort control; flux:table is available in free Flux UI.
+    'flux_tier' => 'auto', // auto | base | pro
+    'mobile_layout' => 'cards', // cards | table
     'table_wrapper_class' => 'overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900',
+    // @deprecated No la consume ninguna vista del paquete (el scroll horizontal lo maneja
+    // flux:table vía <ui-table-scroll-area>). Se mantiene por compatibilidad hacia atrás.
     'table_scroll_class' => 'overflow-x-auto',
 
     // Zebra striping — filas alternadas.
@@ -24,9 +29,11 @@ return [
     'empty_state_heading' => null, // null = use translation. Set a string to override.
     'empty_state_message' => null, // null = use translation. Set a string to override.
     // Banner de selección masiva (visible cuando hay filas seleccionadas).
-    'selection_banner_class'      => 'flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950 px-4 py-2.5 text-sm',
-    'selection_banner_text_class' => 'text-sky-700 dark:text-sky-300',
-    'selection_banner_link_class' => 'font-medium text-sky-700 dark:text-sky-300 underline underline-offset-2 transition hover:text-sky-900 dark:hover:text-sky-100',
+    // Neutro por diseño — coincide con las tarjetas del toolbar y la tabla en vez
+    // de destacar con color; el color se reserva para la acción "danger".
+    'selection_banner_class'      => 'flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3 text-sm shadow-sm',
+    'selection_banner_text_class' => 'font-medium text-zinc-700 dark:text-zinc-200',
+    'selection_banner_link_class' => 'font-medium text-zinc-500 dark:text-zinc-400 underline-offset-2 transition hover:text-zinc-900 dark:hover:text-white hover:underline',
 
     'pagination' => 'length_aware',
     'stubs_path' => 'stubs/livewire-flux-tables',

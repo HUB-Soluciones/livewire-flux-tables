@@ -1,4 +1,4 @@
-@php($cell = $component->renderCell($column, $row))
+@php($cell = $table->renderCell($column, $row))
 
 <div class="{{ $column->shouldStackOnMobile() ? 'grid gap-1 md:block' : '' }}">
     @if ($column->shouldStackOnMobile() || $column->mobileLabelValue())

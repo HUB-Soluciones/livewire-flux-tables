@@ -274,4 +274,45 @@ class SelectionColumnTest extends TestCase
 
         $this->assertSame('Marcar inactivos', $col->getBulkActions()['markInactive']);
     }
+
+    public function test_selection_header_renders_flux_dropdown_menu(): void
+    {
+        $html = Livewire::test(UsersTableWithSelection::class)->html();
+
+        $this->assertStringContainsString('data-flux-dropdown', $html);
+        $this->assertStringContainsString('data-flux-menu', $html);
+        $this->assertStringNotContainsString('absolute left-0 top-full', $html);
+    }
+
+    public function test_selection_header_checkbox_toggles_page_selection(): void
+    {
+        $html = Livewire::test(UsersTableWithSelection::class)->html();
+
+        $this->assertMatchesRegularExpression(
+            '/<ui-checkbox[^>]*wire:click="togglePageSelection"/',
+            $html
+        );
+    }
+
+    public function test_bulk_action_button_renders_its_declared_icon(): void
+    {
+        $html = Livewire::test(UsersTableWithSelection::class)
+            ->call('toggleRow', '1')
+            ->html();
+
+        // El icono se renderiza como el <svg> de flux:icon (arrow-down-tray,
+        // variante "micro"), no como el nombre literal — comprobamos su trazo.
+        $this->assertStringContainsString('M8.75 2.75a.75.75 0 0 0-1.5 0v5.69L5.03 6.22', $html);
+    }
+
+    public function test_row_selection_checkbox_compiles_as_flux_component(): void
+    {
+        $html = Livewire::test(UsersTableWithSelection::class)->html();
+
+        $this->assertStringNotContainsString('<flux:checkbox', $html);
+        $this->assertMatchesRegularExpression(
+            "/<ui-checkbox[^>]*wire:click=\"toggleRow\('1'\)\"/",
+            $html
+        );
+    }
 }
