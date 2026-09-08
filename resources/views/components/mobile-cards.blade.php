@@ -64,9 +64,9 @@
                 <div class="min-w-0 flex-1 space-y-2">
                     @foreach ($summaryColumns as $column)
                         @php($cell = $table->renderCell($column, $row))
-                        <div class="min-w-0 {{ $loop->first ? 'text-base font-semibold text-zinc-900 dark:text-white' : 'flex items-center justify-between gap-3 text-sm' }}">
+                        <div class="min-w-0 {{ $loop->first ? 'text-base font-semibold text-zinc-900 dark:text-white' : 'grid grid-cols-[minmax(0,40%)_minmax(0,1fr)] gap-3 text-sm' }}">
                             @if (! $loop->first)
-                                <span class="shrink-0 text-xs font-medium uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                                <span class="text-xs font-medium uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
                                     {{ $column->mobileLabelValue() ?: $column->label() }}
                                 </span>
                             @endif

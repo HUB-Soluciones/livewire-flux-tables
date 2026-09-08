@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Long values in the mobile card's secondary summary fields (e.g. a full name) no longer break character-by-character. The row used a `flex` layout with a `shrink-0` label, which forced the value into an ever-shrinking space until it had to split mid-word; it now uses the same `grid grid-cols-[minmax(0,40%)_minmax(0,1fr)]` layout already used by the expanded detail rows, guaranteeing the value at least 60% of the row width so it wraps at word boundaries.
+
 ## [0.3.1] - 2026-09-08
 
 ### Fixed
