@@ -393,6 +393,7 @@ Then toggle the `dark` class on `<html>` or `<body>` to switch themes programmat
 **Customizing dark colors:** All visual class keys in the config accept `dark:` variants:
 ```php
 'table_wrapper_class' => 'overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900',
+'table_edge_padding_class' => '[&_th:first-child]:ps-4 [&_th:last-child]:pe-4 [&_td:first-child]:ps-4 [&_td:last-child]:pe-4',
 'zebra_odd_class'     => 'bg-white dark:bg-zinc-900',
 'zebra_even_class'    => 'bg-zinc-50 dark:bg-zinc-800/40',
 'sticky_header_class' => 'bg-zinc-50 dark:bg-zinc-800',

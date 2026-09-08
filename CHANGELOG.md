@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- The first and last columns of the desktop table no longer touch the wrapper card's edges. Flux's `flux:table.column`/`flux:table.cell` zero out horizontal padding on the first/last `th`/`td` (`first:ps-0 last:pe-0`), which assumes a borderless, edge-to-edge table; since the package wraps the table in a bordered, rounded card, that left the leading cell (checkbox or first data column) and the trailing cell pressed against the border. A new `table_edge_padding_class` config key restores 1rem of inset on both edges, matching the toolbar and pagination cards.
+
 ## [0.3.0] - 2026-09-01
 
 ### Added

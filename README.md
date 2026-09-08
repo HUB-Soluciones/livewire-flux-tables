@@ -340,6 +340,10 @@ After publishing, edit `config/livewire-flux-tables.php`:
 'flux_tier'           => 'auto', // mobile sort: auto | base | pro
 'mobile_layout'      => 'cards', // cards | table
 'table_wrapper_class' => '...',       // Tailwind classes for the outer wrapper
+'table_edge_padding_class' => '...',  // horizontal inset on the first/last th/td, restoring the
+                                       // padding Flux zeroes out at the edges (`first:ps-0 last:pe-0`)
+                                       // for borderless tables. If you override it, make sure the
+                                       // classes are covered by your app's Tailwind @source/safelist.
 'table_scroll_class'  => 'overflow-x-auto',
 'empty_state_heading' => 'No results',
 'empty_state_message' => '...',

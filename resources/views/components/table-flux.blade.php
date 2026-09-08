@@ -1,4 +1,4 @@
-<div class="{{ config('livewire-flux-tables.table_wrapper_class') }} {{ $table->mobileLayout() === 'cards' ? 'hidden md:block' : '' }}">
+<div class="{{ config('livewire-flux-tables.table_wrapper_class') }} {{ config('livewire-flux-tables.table_edge_padding_class', '[&_th:first-child]:ps-4 [&_th:last-child]:pe-4 [&_td:first-child]:ps-4 [&_td:last-child]:pe-4') }} {{ $table->mobileLayout() === 'cards' ? 'hidden md:block' : '' }}">
     <flux:table>
         <flux:table.columns sticky>
             @foreach ($columns as $index => $column)
