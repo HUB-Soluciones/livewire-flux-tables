@@ -11,6 +11,10 @@ return [
     'flux_tier' => 'auto', // auto | base | pro
     'mobile_layout' => 'cards', // cards | table
     'table_wrapper_class' => 'overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900',
+    // Inset horizontal en los bordes de la tabla. Flux aplica `first:ps-0 last:pe-0` a
+    // th/td asumiendo una tabla a sangre; como aquí va dentro de una card con borde, se
+    // restituye el padding. Gana por especificidad (0,2,1 vs 0,2,0), sin !important.
+    'table_edge_padding_class' => '[&_th:first-child]:ps-4 [&_th:last-child]:pe-4 [&_td:first-child]:ps-4 [&_td:last-child]:pe-4',
     // @deprecated No la consume ninguna vista del paquete (el scroll horizontal lo maneja
     // flux:table vía <ui-table-scroll-area>). Se mantiene por compatibilidad hacia atrás.
     'table_scroll_class' => 'overflow-x-auto',
