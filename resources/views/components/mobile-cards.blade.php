@@ -64,13 +64,13 @@
                 <div class="min-w-0 flex-1 space-y-2">
                     @foreach ($summaryColumns as $column)
                         @php($cell = $table->renderCell($column, $row))
-                        <div class="min-w-0 {{ $loop->first ? 'text-base font-semibold text-zinc-900 dark:text-white' : 'flex items-center justify-between gap-3 text-sm' }}">
+                        <div class="min-w-0 {{ $loop->first ? 'text-base font-semibold text-zinc-900 dark:text-white' : 'space-y-0.5 text-sm' }}">
                             @if (! $loop->first)
-                                <span class="shrink-0 text-xs font-medium uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                                <span class="block text-xs font-medium uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
                                     {{ $column->mobileLabelValue() ?: $column->label() }}
                                 </span>
                             @endif
-                            <span class="min-w-0 break-words {{ $loop->first ? '' : 'text-right text-zinc-700 dark:text-zinc-200' }}">
+                            <span class="block min-w-0 break-words {{ $loop->first ? '' : 'text-zinc-700 dark:text-zinc-200' }}">
                                 @if ($cell['html']){!! $cell['value'] !!}@else{{ $cell['value'] }}@endif
                             </span>
                         </div>
@@ -109,11 +109,11 @@
                     <dl class="divide-y divide-zinc-100 dark:divide-zinc-800">
                         @foreach ($detailColumns as $column)
                             @php($cell = $table->renderCell($column, $row))
-                            <div class="grid grid-cols-[minmax(0,40%)_minmax(0,1fr)] gap-3 py-3 first:pt-0 last:pb-0">
+                            <div class="space-y-0.5 py-3 first:pt-0 last:pb-0">
                                 <dt class="text-xs font-medium uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
                                     {{ $column->mobileLabelValue() ?: $column->label() }}
                                 </dt>
-                                <dd class="min-w-0 break-words text-right text-sm text-zinc-700 dark:text-zinc-200">
+                                <dd class="min-w-0 break-words text-sm text-zinc-700 dark:text-zinc-200">
                                     @if ($cell['html']){!! $cell['value'] !!}@else{{ $cell['value'] }}@endif
                                 </dd>
                             </div>

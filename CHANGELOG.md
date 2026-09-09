@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Mobile card fields (secondary summary rows and expanded detail rows) now stack the label above the value instead of placing them side by side. The previous side-by-side grid still squeezed the value into a fixed-width column, which caused long text (e.g. a full name) to wrap into a narrow, cramped block; stacking gives the value the full card width to wrap naturally.
+
 ## [0.3.1] - 2026-09-08
 
 ### Fixed
