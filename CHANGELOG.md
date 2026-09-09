@@ -2,9 +2,9 @@
 
 ## [Unreleased]
 
-### Fixed
+### Changed
 
-- Long values in the mobile card's secondary summary fields (e.g. a full name) no longer break character-by-character. The row used a `flex` layout with a `shrink-0` label, which forced the value into an ever-shrinking space until it had to split mid-word; it now uses the same `grid grid-cols-[minmax(0,40%)_minmax(0,1fr)]` layout already used by the expanded detail rows, guaranteeing the value at least 60% of the row width so it wraps at word boundaries.
+- Mobile card fields (secondary summary rows and expanded detail rows) now stack the label above the value instead of placing them side by side. The previous side-by-side grid still squeezed the value into a fixed-width column, which caused long text (e.g. a full name) to wrap into a narrow, cramped block; stacking gives the value the full card width to wrap naturally.
 
 ## [0.3.1] - 2026-09-08
 
