@@ -2,8 +2,10 @@
 
 namespace HubSoluciones\LivewireFluxTables\Livewire;
 
+use Flux\DateRange;
 use HubSoluciones\LivewireFluxTables\Columns\Column;
 use HubSoluciones\LivewireFluxTables\Columns\SelectionColumn;
+use HubSoluciones\LivewireFluxTables\Filters\DateRangeFilter;
 use HubSoluciones\LivewireFluxTables\Filters\Filter;
 use HubSoluciones\LivewireFluxTables\Query\QueryPipeline;
 use HubSoluciones\LivewireFluxTables\Rendering\CellRenderer;
@@ -33,7 +35,17 @@ abstract class FluxTableComponent extends Component
 
     public array $tableFilters = [];
 
-    public array $hiddenColumns = [];
+    /** @var array<string, ?DateRange> One entry per date-range filter key. */
+    public array $tableDateRanges = [];
+
+    /**
+     * Field names of hideable columns currently shown. `null` means "not
+     * resolved yet" — {@see initializeVisibleColumnFields()} fills it in
+     * during `mount()` from the session or, failing that, defaults to every
+     * hideable column. Kept nullable (rather than defaulting to `[]`) so an
+     * explicit "hide everything" choice isn't mistaken for the unset state.
+     */
+    public ?array $visibleColumnFields = null;
 
     public array $selectedKeys = [];
 
@@ -47,6 +59,9 @@ abstract class FluxTableComponent extends Component
 
     /** @var 'cards'|'table'|null */
     protected ?string $mobileLayout = null;
+
+    /** @var 'sm'|'default'|null */
+    protected ?string $filtersSize = null;
 
     protected QueryPipeline $queryPipeline;
 
@@ -77,6 +92,9 @@ abstract class FluxTableComponent extends Component
         foreach ($this->resolvedFilters() as $filter) {
             $this->tableFilters[$filter->key()] = Arr::get($this->tableFilters, $filter->key(), $filter->initialState());
         }
+
+        $this->syncDateRangesFromFilters();
+        $this->initializeVisibleColumnFields();
 
         if ($defaultSort = $this->defaultSort()) {
             $this->sort ??= $defaultSort;
@@ -120,6 +138,28 @@ abstract class FluxTableComponent extends Component
 
     public function updatedTableFilters(): void
     {
+        $this->resetPage();
+    }
+
+    /**
+     * `flux:date-picker` writes into `$tableDateRanges`. Over the wire this
+     * arrives as a plain `['start' => ..., 'end' => ..., 'preset' => ...]`
+     * array (Livewire has no prior type metadata for a path that started out
+     * `null`, so `Flux\DateRangeSynth` isn't applied on the way back in) —
+     * `dateRangeToFilterState()` accepts either shape. Filters read a plain
+     * `from`/`to` array, so mirror every range into `$tableFilters` before
+     * the query pipeline runs.
+     */
+    public function updatedTableDateRanges(): void
+    {
+        foreach ($this->tableDateRanges as $key => $range) {
+            if (! array_key_exists($key, $this->tableFilters)) {
+                continue;
+            }
+
+            $this->tableFilters[$key] = $this->dateRangeToFilterState($range);
+        }
+
         $this->resetPage();
     }
 
@@ -170,16 +210,30 @@ abstract class FluxTableComponent extends Component
         $this->showFilters = ! $this->showFilters;
     }
 
-    public function toggleColumn(string $field): void
+    protected function initializeVisibleColumnFields(): void
     {
-        if (in_array($field, $this->hiddenColumns, true)) {
-            $this->hiddenColumns = array_values(array_filter(
-                $this->hiddenColumns,
-                fn ($f) => $f !== $field
-            ));
-        } else {
-            $this->hiddenColumns[] = $field;
+        if ($this->visibleColumnFields !== null) {
+            return;
         }
+
+        $saved = $this->persistsQueryString() ? session()->get($this->columnVisibilitySessionKey()) : null;
+
+        $this->visibleColumnFields = is_array($saved)
+            ? $saved
+            : array_map(fn (Column $column) => $column->field(), $this->hideableColumns());
+    }
+
+    /** Bound via `wire:model` on the Columns menu's `flux:menu.checkbox.group`. */
+    public function updatedVisibleColumnFields(): void
+    {
+        if ($this->persistsQueryString()) {
+            session()->put($this->columnVisibilitySessionKey(), $this->visibleColumnFields);
+        }
+    }
+
+    protected function columnVisibilitySessionKey(): string
+    {
+        return 'livewire-flux-tables.visible-columns.'.$this->getName();
     }
 
     public function toggleRow(mixed $key): void
@@ -235,6 +289,11 @@ abstract class FluxTableComponent extends Component
         foreach ($this->resolvedFilters() as $filter) {
             if ($filter->key() === $key) {
                 $this->tableFilters[$key] = $filter->initialState();
+
+                if ($filter instanceof DateRangeFilter) {
+                    $this->tableDateRanges[$key] = null;
+                }
+
                 break;
             }
         }
@@ -246,6 +305,10 @@ abstract class FluxTableComponent extends Component
     {
         foreach ($this->resolvedFilters() as $filter) {
             $this->tableFilters[$filter->key()] = $filter->initialState();
+
+            if ($filter instanceof DateRangeFilter) {
+                $this->tableDateRanges[$filter->key()] = null;
+            }
         }
 
         $this->resetPage();
@@ -270,13 +333,11 @@ abstract class FluxTableComponent extends Component
     #[Computed]
     public function visibleColumns(): array
     {
-        if (empty($this->hiddenColumns)) {
-            return $this->resolvedColumns;
-        }
+        $visibleFields = $this->visibleColumnFields ?? [];
 
         return array_values(array_filter(
             $this->resolvedColumns,
-            fn (Column $col) => ! in_array($col->field(), $this->hiddenColumns, true)
+            fn (Column $col) => ! $col->isHideable() || in_array($col->field(), $visibleFields, true)
         ));
     }
 
@@ -400,6 +461,53 @@ abstract class FluxTableComponent extends Component
         ));
     }
 
+    /**
+     * Rebuild `$tableDateRanges` from the current `$tableFilters` state, so a
+     * `flux:date-picker` opens pre-filled after `mount()` (e.g. from a shared
+     * URL carrying `?created_between[from]=...&created_between[to]=...`).
+     */
+    protected function syncDateRangesFromFilters(): void
+    {
+        foreach ($this->resolvedFilters() as $filter) {
+            if (! $filter instanceof DateRangeFilter) {
+                continue;
+            }
+
+            $value = $this->tableFilters[$filter->key()] ?? $filter->initialState();
+            $from = is_array($value) ? ($value['from'] ?? null) : null;
+            $to = is_array($value) ? ($value['to'] ?? null) : null;
+
+            $this->tableDateRanges[$filter->key()] = ($from || $to)
+                ? new DateRange($from, $to)
+                : null;
+        }
+    }
+
+    /**
+     * Convert a date-range value back into the filter's `from`/`to` shape.
+     * Accepts a hydrated `Flux\DateRange`, the plain `['start' => ..., 'end'
+     * => ...]` array Livewire delivers over the wire (see
+     * `updatedTableDateRanges()`), or `null`.
+     */
+    protected function dateRangeToFilterState(mixed $range): array
+    {
+        if ($range instanceof DateRange) {
+            return [
+                'from' => $range->start()?->format('Y-m-d'),
+                'to' => $range->end()?->format('Y-m-d'),
+            ];
+        }
+
+        if (is_array($range)) {
+            return [
+                'from' => $range['start'] ?? $range['from'] ?? null,
+                'to' => $range['end'] ?? $range['to'] ?? null,
+            ];
+        }
+
+        return ['from' => null, 'to' => null];
+    }
+
     public function tableState(): TableState
     {
         return new TableState(
@@ -445,6 +553,14 @@ abstract class FluxTableComponent extends Component
     public function isStriped(): bool
     {
         return $this->striped ?? (bool) config('livewire-flux-tables.zebra_striping', false);
+    }
+
+    /** Tamaño de los controles del panel de filtros. Null = tamaño normal de Flux. */
+    public function filtersSize(): ?string
+    {
+        $size = $this->filtersSize ?? (string) config('livewire-flux-tables.filter_size', 'sm');
+
+        return $size === 'default' ? null : $size;
     }
 
     public function rowBackgroundClass(int $iteration, bool $isSelected): string
@@ -498,7 +614,6 @@ abstract class FluxTableComponent extends Component
             emptyStateHeading: $this->emptyHeading(),
             emptyStateMessage: $this->emptyMessage(),
             mobileLayout: $this->mobileLayout(),
-            fluxTier: (string) config('livewire-flux-tables.flux_tier', 'auto'),
         );
     }
 
@@ -662,29 +777,6 @@ abstract class FluxTableComponent extends Component
         return 'flux-table-row-'.substr(sha1((string) $this->resolveRowKey($row)), 0, 16);
     }
 
-    public function usesFluxPro(): bool
-    {
-        $tier = config('livewire-flux-tables.flux_tier', 'auto');
-
-        if (! in_array($tier, ['auto', 'base', 'pro'], true)) {
-            throw new \InvalidArgumentException('Flux tier must be auto, base, or pro.');
-        }
-
-        if ($tier === 'base') {
-            return false;
-        }
-
-        $hasPro = class_exists(\Flux\Flux::class)
-            && app()->bound('flux')
-            && (bool) \Flux\Flux::pro();
-
-        if ($tier === 'pro' && ! $hasPro) {
-            throw new \RuntimeException('Flux Pro is required when livewire-flux-tables.flux_tier is set to pro.');
-        }
-
-        return $hasPro;
-    }
-
     protected function rowKeyField(): string
     {
         return 'id';
@@ -775,7 +867,6 @@ abstract class FluxTableComponent extends Component
             'mobileSummary' => $this->mobileSummaryColumns,
             'mobileDetails' => $this->mobileDetailColumns,
             'mobileSortColumns' => $this->mobileSortColumns,
-            'fluxPro' => $this->usesFluxPro(),
             'sticky' => $this->stickyColumnManager->map(
                 $visibleColumns,
                 config('livewire-flux-tables.default_sticky_width', '12rem')

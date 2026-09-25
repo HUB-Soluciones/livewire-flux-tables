@@ -10,11 +10,16 @@ use Illuminate\Support\Str;
 
 abstract class Filter implements AppliesToData
 {
+    /** Anchos válidos para el control del filtro en el panel de filtros. */
+    public const WIDTHS = ['sm', 'md', 'lg', 'full'];
+
     protected mixed $applyCallback = null;
 
     protected mixed $default = null;
 
     protected ?string $placeholder = null;
+
+    protected ?string $width = null;
 
     public function __construct(
         protected string $label,
@@ -59,6 +64,48 @@ abstract class Filter implements AppliesToData
     public function placeholderValue(): ?string
     {
         return $this->placeholder;
+    }
+
+    /**
+     * Ancho del control en el panel de filtros: 'sm', 'md', 'lg' o 'full'.
+     * Sin definir, se usa `config('livewire-flux-tables.filter_default_width')`.
+     */
+    public function width(string $width): static
+    {
+        if (! in_array($width, self::WIDTHS, true)) {
+            throw new \InvalidArgumentException(
+                sprintf('Invalid filter width [%s]. Expected one of: %s.', $width, implode(', ', self::WIDTHS))
+            );
+        }
+
+        $this->width = $width;
+
+        return $this;
+    }
+
+    public function small(): static
+    {
+        return $this->width('sm');
+    }
+
+    public function medium(): static
+    {
+        return $this->width('md');
+    }
+
+    public function large(): static
+    {
+        return $this->width('lg');
+    }
+
+    public function fullWidth(): static
+    {
+        return $this->width('full');
+    }
+
+    public function widthValue(): string
+    {
+        return $this->width ?? (string) config('livewire-flux-tables.filter_default_width', 'md');
     }
 
     public function applyUsing(callable $callback): static

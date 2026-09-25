@@ -13,7 +13,6 @@ class TableConfiguration
         public string $emptyStateHeading,
         public string $emptyStateMessage,
         public string $mobileLayout = 'cards',
-        public string $fluxTier = 'auto',
     ) {
     }
 }

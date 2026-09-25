@@ -412,6 +412,10 @@ When working with sticky columns:
 
 ### Filters
 
+Every filter renders as a Flux UI Pro component (`flux:field`/`flux:label`, `flux:select
+variant="listbox"`, `flux:date-picker`) — Flux Pro is a required dependency of this package,
+never build a raw `<select>`/`<input type="date">` alternative.
+
 Implement filters with these rules:
 
 - each filter must have a stable, semantic `key`
@@ -420,6 +424,14 @@ Implement filters with these rules:
 - date filters must use a consistent format
 - `DateRangeFilter` must clearly map `from` and `to`
 - `SelectFilter` must accept clean, predictable options
+- use `SelectFilter::searchable()` when a select has many options
+- use `DateRangeFilter::presets([...])` to curate the preset shortcuts, or
+  `->withoutPresets()` to disable them; both apply to the `flux:date-picker mode="range"`
+  presets column and never change the `from`/`to` state shape
+- use `->width('sm'|'md'|'lg'|'full')` on each filter to control its column span in the
+  filter panel grid (default `md`, from `config('livewire-flux-tables.filter_default_width')`);
+  filter controls render compact by default (`config('livewire-flux-tables.filter_size')` =
+  `sm`), overridable per table with `protected ?string $filtersSize = 'default';`
 
 ### Global search
 
@@ -639,4 +651,4 @@ When executing tasks with this skill:
 
 ## Expected output
 
-The agent must produce professional, consistent, and reusable solutions using the package as the official infrastructure for dynamic Livewire tables with Flux UI or Flux UI Pro if exist.
+The agent must produce professional, consistent, and reusable solutions using the package as the official infrastructure for dynamic Livewire tables, built on Flux UI Pro (a required dependency of this package).

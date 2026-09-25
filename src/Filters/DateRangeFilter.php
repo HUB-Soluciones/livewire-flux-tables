@@ -8,6 +8,11 @@ use Illuminate\Support\Collection;
 
 class DateRangeFilter extends Filter
 {
+    protected bool $withPresets = true;
+
+    /** Space-separated `Flux\DateRangePreset` values, or null to use Flux's defaults. */
+    protected ?string $presets = null;
+
     public function initialState(): mixed
     {
         return $this->default ?? [
@@ -19,6 +24,36 @@ class DateRangeFilter extends Filter
     public function type(): string
     {
         return 'date-range';
+    }
+
+    /**
+     * Restrict the `flux:date-picker` presets list. Accepts either a
+     * space-separated string or an array of `Flux\DateRangePreset` values
+     * (e.g. `today`, `last7Days`, `thisMonth`, `yearToDate`, `allTime`).
+     */
+    public function presets(string|array $presets): static
+    {
+        $this->presets = is_array($presets) ? implode(' ', $presets) : $presets;
+
+        return $this;
+    }
+
+    public function presetsValue(): ?string
+    {
+        return $this->presets;
+    }
+
+    /** Disable the presets column on the `flux:date-picker` (enabled by default). */
+    public function withoutPresets(): static
+    {
+        $this->withPresets = false;
+
+        return $this;
+    }
+
+    public function usesPresets(): bool
+    {
+        return $this->withPresets;
     }
 
     public function hasValue(mixed $value): bool

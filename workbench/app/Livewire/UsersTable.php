@@ -4,6 +4,7 @@ namespace Workbench\App\Livewire;
 
 use HubSoluciones\LivewireFluxTables\Columns\Column;
 use HubSoluciones\LivewireFluxTables\Columns\SelectionColumn;
+use HubSoluciones\LivewireFluxTables\Filters\DateFilter;
 use HubSoluciones\LivewireFluxTables\Filters\DateRangeFilter;
 use HubSoluciones\LivewireFluxTables\Filters\SelectFilter;
 use HubSoluciones\LivewireFluxTables\Filters\TextFilter;
@@ -56,17 +57,20 @@ class UsersTable extends FluxTableComponent
     public function filters(): array
     {
         return [
-            TextFilter::make('Nombre', 'name'),
-            SelectFilter::make('Rol', 'role')->options([
+            TextFilter::make('Nombre', 'name')->width('md'),
+            SelectFilter::make('Rol', 'role')->width('sm')->options([
                 'admin'  => 'Administrador',
                 'editor' => 'Editor',
                 'viewer' => 'Visor',
             ]),
-            SelectFilter::make('Estado', 'status')->options([
+            SelectFilter::make('Estado', 'status')->width('sm')->options([
                 'active'   => 'Activo',
                 'inactive' => 'Inactivo',
             ]),
-            DateRangeFilter::make('Periodo', 'created_between'),
+            DateFilter::make('Actualizado', 'updated_at')->width('sm'),
+            DateRangeFilter::make('Periodo', 'created_between')
+                ->width('lg')
+                ->presets(['today', 'yesterday', 'last7Days', 'thisMonth', 'lastMonth', 'yearToDate']),
         ];
     }
 

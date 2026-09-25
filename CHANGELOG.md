@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.4.0] - 2026-09-08
+
+### Changed
+
+- **Breaking:** `livewire/flux-pro` is now a required dependency (`composer.json` `require`, not `suggest`). The package renders every interactive control — text/select/date/date-range filters, the toolbar search, the "per page" select, and the mobile sort control — with Flux UI components, including Pro-only ones (`flux:select variant="listbox"`, `flux:date-picker`). This package targets internal use where a Flux Pro license is available.
+- **Breaking:** removed the `flux_tier` config key and `FluxTableComponent::usesFluxPro()`. There is no more `base`/`auto`/`pro` detection or fallback — Pro is always used. If your app published `config/livewire-flux-tables.php`, remove the `flux_tier` line (it is ignored otherwise).
+- **Breaking:** removed `resources/views/components/mobile-sort-pro.blade.php`. Its content now lives in `mobile-sort.blade.php`, which is the only mobile-sort view.
+- The filters panel (`resources/views/components/filters.blade.php`) now renders `flux:field`/`flux:label`, `flux:select` (`SelectFilter`), `flux:date-picker` (`DateFilter`), and `flux:date-picker mode="range"` with presets (`DateRangeFilter`) instead of raw `<select>`/`<input>` markup.
+- The toolbar search input and the "records per page" select are now `flux:input` and `flux:select` respectively, instead of raw HTML.
+
+### Added
+
+- `SelectFilter::searchable()` — shows the search field inside the `listbox` select variant.
+- `DateRangeFilter::presets()` / `DateRangeFilter::withoutPresets()` — control the preset shortcuts (today, last 7 days, this month, …) shown in the range date picker. Presets are enabled by default.
+- `FluxTableComponent::$tableDateRanges` bridges `flux:date-picker mode="range"` back into each `DateRangeFilter`'s existing `['from' => ..., 'to' => ...]` state — no change needed to `applyUsing()`, convention-based `apply{Key}Filter()` methods, or query-string persistence. Handles both a hydrated `Flux\DateRange` and the plain `['start' => ..., 'end' => ..., 'preset' => ...]` array the picker delivers over the wire (Livewire has no prior type metadata for a path that started out `null`, so `Flux\DateRangeSynth` isn't applied on the way back in).
+- Column visibility (the "Columns" dropdown) is now remembered per table across page loads, stored in the session under a key derived from the Livewire component name.
+- `Filter::width('sm'|'md'|'lg'|'full')` (aliases: `small()`, `medium()`, `large()`, `fullWidth()`) — controls how much of the filter panel's 12-column grid each filter occupies. Defaults to `md`, overridable globally via `config('livewire-flux-tables.filter_default_width')`.
+- Filter controls (`flux:input`/`flux:select`/`flux:date-picker` in the filters panel) now render compact (`size="sm"`) by default instead of Flux's normal control height, addressing filters that looked overly tall and wide when the panel was open. Configurable via `config('livewire-flux-tables.filter_size')` or per table with `protected ?string $filtersSize = 'default';` to opt back into full-size controls.
+
+### Fixed
+
+- Unchecking a column in the "Columns" dropdown could leave its checkbox showing checked again after any later interaction with the table, even though the column stayed hidden. The dropdown built its own checkbox out of a plain `flux:checkbox` with a static `:checked` attribute and a separate `wire:click` on the menu item; `flux:checkbox` renders a custom `ui-checkbox` element that only reads its `checked` attribute once, on first connect, so it never picked up later state changes. Rebuilt the menu with Flux's `flux:menu.checkbox.group` / `flux:menu.checkbox`, which are `wire:model`-aware and stay in sync (`FluxTableComponent::$hiddenColumns` + `toggleColumn()` were replaced by `$visibleColumnFields`, bound directly to the group).
+- The "records per page" select in the toolbar stretched to full width and wrapped onto its own row below the search bar instead of sitting next to "Columns". It's now wrapped with a fixed compact width.
+
 ## [0.3.2] - 2026-09-08
 
 ### Changed

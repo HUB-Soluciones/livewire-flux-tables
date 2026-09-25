@@ -34,13 +34,13 @@ class UsersTable extends FluxTableComponent
     public function filters(): array
     {
         return [
-            TextFilter::make('Nombre', 'name'),
+            TextFilter::make('Nombre', 'name')->width('sm'),
             SelectFilter::make('Rol', 'role')->options([
                 'admin' => 'Admin',
                 'user' => 'Usuario',
             ]),
             DateFilter::make('Fecha', 'created_at'),
-            DateRangeFilter::make('Periodo', 'created_between'),
+            DateRangeFilter::make('Periodo', 'created_between')->width('full'),
         ];
     }
 

@@ -3,7 +3,6 @@
         @include('livewire-flux-tables::components.toolbar', [
             'table' => $table,
             'filters' => $filters,
-            'fluxPro' => $fluxPro ?? false,
             'mobileSortColumns' => $mobileSortColumns ?? $table->mobileSortColumns,
         ])
     </div>
@@ -74,7 +73,6 @@
         'columns' => $columns,
         'rows' => $rows,
         'sticky' => $sticky,
-        'fluxPro' => $fluxPro ?? false,
     ])
 
     @if ($table->mobileLayout() === 'cards')

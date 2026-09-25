@@ -44,15 +44,14 @@
     {{-- Main toolbar row --}}
     <div class="flex flex-wrap items-center gap-2" data-flux-table-toolbar>
         {{-- Search --}}
-        <div class="relative min-w-0 basis-full sm:basis-auto sm:flex-1 sm:max-w-xs" data-flux-table-search>
-            <div class="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-                <flux:icon.magnifying-glass class="size-4 text-zinc-400 dark:text-zinc-500" />
-            </div>
-            <input
+        <div class="min-w-0 basis-full sm:basis-auto sm:flex-1 sm:max-w-xs" data-flux-table-search>
+            <flux:input
                 type="search"
-                wire:model.live.debounce.300ms="search"
+                icon="magnifying-glass"
+                clearable
                 placeholder="{{ $table->searchPlaceholder() }}"
-                class="w-full rounded-xl border border-zinc-200 bg-white py-2.5 pl-9 pr-4 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 data-loading:opacity-60 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500 dark:focus:ring-zinc-700"
+                wire:model.live.debounce.300ms="search"
+                class="w-full data-loading:opacity-60"
             />
         </div>
 
@@ -77,12 +76,10 @@
 
         {{-- Orden móvil: el mismo estado se usa en los encabezados de escritorio. --}}
         @if ($table->mobileLayout() === 'cards' && !empty($mobileSortColumns ?? $table->mobileSortColumns))
-            @include(
-                ($fluxPro ?? false)
-                    ? 'livewire-flux-tables::components.mobile-sort-pro'
-                    : 'livewire-flux-tables::components.mobile-sort',
-                ['table' => $table, 'mobileSortColumns' => $mobileSortColumns ?? $table->mobileSortColumns]
-            )
+            @include('livewire-flux-tables::components.mobile-sort', [
+                'table' => $table,
+                'mobileSortColumns' => $mobileSortColumns ?? $table->mobileSortColumns,
+            ])
         @endif
 
         {{-- Columnas --}}
@@ -98,30 +95,29 @@
                 </flux:button>
 
                 <flux:menu>
-                    @foreach ($hideableColumns as $column)
-                        <flux:menu.item
-                            wire:click="toggleColumn('{{ $column->field() }}')"
-                        >
-                            <flux:checkbox
-                                :checked="!in_array($column->field(), $table->hiddenColumns)"
-                                class="pointer-events-none"
-                            />
-                            {{ $column->label() }}
-                        </flux:menu.item>
-                    @endforeach
+                    <flux:menu.checkbox.group wire:model.live="visibleColumnFields">
+                        @foreach ($hideableColumns as $column)
+                            <flux:menu.checkbox value="{{ $column->field() }}">
+                                {{ $column->label() }}
+                            </flux:menu.checkbox>
+                        @endforeach
+                    </flux:menu.checkbox.group>
                 </flux:menu>
             </flux:dropdown>
         @endif
 
         {{-- Registros por página --}}
-        <select
-            wire:model.live="perPage"
-            class="shrink-0 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-zinc-400 dark:focus:border-zinc-500 focus:ring-2 focus:ring-zinc-100 dark:focus:ring-zinc-700"
-        >
-            @foreach ($table->perPageOptions() as $option)
-                <option value="{{ $option }}">{{ $option }}</option>
-            @endforeach
-        </select>
+        <div class="w-20 shrink-0" data-flux-table-per-page>
+            <flux:select
+                variant="listbox"
+                wire:model.live="perPage"
+                class="w-full"
+            >
+                @foreach ($table->perPageOptions() as $option)
+                    <flux:select.option value="{{ $option }}">{{ $option }}</flux:select.option>
+                @endforeach
+            </flux:select>
+        </div>
     </div>
 
     {{-- Panel de filtros colapsable --}}

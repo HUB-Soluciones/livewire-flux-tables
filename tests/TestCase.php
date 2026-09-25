@@ -3,6 +3,7 @@
 namespace HubSoluciones\LivewireFluxTables\Tests;
 
 use Flux\FluxServiceProvider;
+use FluxPro\FluxProServiceProvider;
 use HubSoluciones\LivewireFluxTables\LivewireFluxTablesServiceProvider;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -34,6 +35,7 @@ abstract class TestCase extends Orchestra
         return [
             LivewireServiceProvider::class,
             FluxServiceProvider::class,
+            FluxProServiceProvider::class,
             LivewireFluxTablesServiceProvider::class,
         ];
     }

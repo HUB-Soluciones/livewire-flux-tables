@@ -7,7 +7,6 @@
         'mobileSummary' => $this->mobileSummaryColumns,
         'mobileDetails' => $this->mobileDetailColumns,
         'mobileSortColumns' => $this->mobileSortColumns,
-        'fluxPro' => $this->usesFluxPro(),
         'sticky' => $this->stickyMetadata(),
     ])
 </div>

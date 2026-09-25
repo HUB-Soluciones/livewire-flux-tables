@@ -10,6 +10,8 @@ class SelectFilter extends Filter
 {
     protected array $options = [];
 
+    protected bool $searchable = false;
+
     public function options(array $options): static
     {
         $this->options = $options;
@@ -20,6 +22,19 @@ class SelectFilter extends Filter
     public function optionsList(): array
     {
         return $this->options;
+    }
+
+    /** Show the search input inside the `flux:select` listbox. */
+    public function searchable(bool $value = true): static
+    {
+        $this->searchable = $value;
+
+        return $this;
+    }
+
+    public function isSearchable(): bool
+    {
+        return $this->searchable;
     }
 
     public function type(): string

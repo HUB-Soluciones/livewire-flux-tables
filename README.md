@@ -8,19 +8,29 @@ A Laravel package for building reusable, Livewire-first data tables styled for F
 - Laravel 10+
 - Livewire 4.0+
 - Flux UI 2.0+ (`livewire/flux`)
+- **Flux UI Pro 2.0+ (`livewire/flux-pro`) — required, not optional.**
 - Tailwind CSS 4.2+
+
+> Every interactive control this package renders — filters, selects, date pickers, the
+> mobile sort control — is a Flux UI component, and several of them (`flux:select
+> variant="listbox"`, `flux:date-picker`) only exist in **Flux UI Pro**. This package is
+> built for internal use where a Flux Pro license is available, so Pro is a hard
+> `composer.json` requirement, not an optional upgrade.
 
 ## Installation
 
+Flux Pro is distributed through a private Composer repository and requires an active
+license. Configure your credentials before installing:
+
 ```bash
+composer config repositories.flux-pro composer https://composer.fluxui.dev
+composer config http-basic.composer.fluxui.dev "<your-flux-username>" "<your-license-key>"
+
 composer require hubsoluciones/livewire-flux-tables
 ```
 
-The package requires Livewire 4 and Flux UI 2. Tables always use Flux UI's free
-`flux:table` components. If `livewire/flux-pro` is installed and activated, the package can
-optionally use the Pro `listbox` variant for the mobile sort control. Set `flux_tier` to
-`base` to always use a native `<select>`, `auto` to detect Pro automatically, or `pro` to
-require Pro and fail fast when it is missing.
+Installing the package pulls in both `livewire/flux` and `livewire/flux-pro` (`^2.0`)
+automatically. Without valid Pro credentials configured first, `composer require` will fail.
 
 Include Flux's assets in your application layout:
 
@@ -223,12 +233,15 @@ Column::make('Status', 'status')->view('cells.status'),
 
 ### Available Filter Types
 
-| Class | Input | Default behavior |
-|-------|-------|-----------------|
-| `TextFilter` | Text input | `LIKE %value%` |
-| `SelectFilter` | Dropdown | Exact match (`where field = value`) |
-| `DateFilter` | Date picker | `whereDate field = value` |
-| `DateRangeFilter` | Two date pickers (from/to) | `whereDate >=` and `whereDate <=` |
+Every filter renders as a Flux UI Pro component — no raw `<select>` or `<input type="date">`
+anywhere in the panel.
+
+| Class | Rendered as | Default behavior |
+|-------|-------------|-----------------|
+| `TextFilter` | `flux:input` | `LIKE %value%` |
+| `SelectFilter` | `flux:select variant="listbox"` | Exact match (`where field = value`) |
+| `DateFilter` | `flux:date-picker` | `whereDate field = value` |
+| `DateRangeFilter` | `flux:date-picker mode="range"` (with presets) | `whereDate >=` and `whereDate <=` |
 
 ```php
 use HubSoluciones\LivewireFluxTables\Filters\SelectFilter;
@@ -239,10 +252,55 @@ public function filters(): array
     return [
         SelectFilter::make('Role', 'role')
             ->options(['admin' => 'Admin', 'user' => 'User'])
-            ->placeholder('All roles'),
+            ->placeholder('All roles')
+            ->searchable(), // show the search input inside the listbox
 
-        DateRangeFilter::make('Created', 'created_at'),
+        DateRangeFilter::make('Created', 'created_at')
+            // Restrict (or reorder) the presets column — accepts a space-separated
+            // string or an array of Flux\DateRangePreset values.
+            ->presets(['today', 'yesterday', 'last7Days', 'thisMonth', 'yearToDate']),
+            // ->withoutPresets(), // disable the presets column entirely
     ];
+}
+```
+
+`DateRangeFilter` shows the presets column by default (Flux's own defaults: today,
+yesterday, this week, last 7 days, this month, year to date, all time). Whichever preset the
+user picks, or a manually chosen start/end, is mirrored back into the filter's `from`/`to`
+state automatically — `applyUsing()`, a convention-based `apply{Key}Filter()` method, and
+`chipValueLabel()` all keep working against the same `['from' => ..., 'to' => ...]` shape as
+before.
+
+### Filter Panel Layout
+
+Each filter renders on a 12-column grid and picks its own width with `->width()`:
+
+```php
+TextFilter::make('Name', 'name')->width('md'),      // default
+SelectFilter::make('Role', 'role')->width('sm'),    // narrow — short option lists
+DateRangeFilter::make('Period', 'created_between')->width('lg'), // wide — range pickers
+// ->width('full') to always take the whole row
+```
+
+| Width | Behavior |
+|-------|----------|
+| `sm` | Narrowest column — good for short selects/dates. |
+| `md` | Default width. |
+| `lg` | Half the row on desktop, full row on tablet. |
+| `full` | Always spans the entire row. |
+
+No `->width()` call falls back to `config('livewire-flux-tables.filter_default_width')` (`md`
+by default).
+
+Filter controls also render **compact by default** (Flux `size="sm"`) so the panel doesn't take
+up excessive vertical space. Change it globally via `filter_size` in the config file, or per
+table:
+
+```php
+class UsersTable extends FluxTableComponent
+{
+    // 'sm' (default) | 'default' — 'default' uses Flux's normal control height.
+    protected ?string $filtersSize = 'default';
 }
 ```
 
@@ -337,7 +395,6 @@ After publishing, edit `config/livewire-flux-tables.php`:
 'persist_query_string' => true,       // sync state to URL query params
 'search_placeholder' => 'Search...',
 'default_sticky_width' => '12rem',
-'flux_tier'           => 'auto', // mobile sort: auto | base | pro
 'mobile_layout'      => 'cards', // cards | table
 'table_wrapper_class' => '...',       // Tailwind classes for the outer wrapper
 'table_edge_padding_class' => '...',  // horizontal inset on the first/last th/td, restoring the
