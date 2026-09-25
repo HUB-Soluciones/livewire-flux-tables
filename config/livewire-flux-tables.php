@@ -7,8 +7,6 @@ return [
     'persist_query_string' => true,
     'search_placeholder' => null, // null = use translation. Set a string to override.
     'default_sticky_width' => '12rem',
-    // Controls only the mobile sort control; flux:table is available in free Flux UI.
-    'flux_tier' => 'auto', // auto | base | pro
     'mobile_layout' => 'cards', // cards | table
     'table_wrapper_class' => 'overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900',
     // Inset horizontal en los bordes de la tabla. Flux aplica `first:ps-0 last:pe-0` a
@@ -41,4 +39,12 @@ return [
 
     'pagination' => 'length_aware',
     'stubs_path' => 'stubs/livewire-flux-tables',
+
+    // Panel de filtros.
+    // Ancho por defecto de cada filtro en el grid: sm | md | lg | full.
+    // Cada filtro puede sobrescribirlo con: ->width('sm'|'md'|'lg'|'full').
+    'filter_default_width' => 'md',
+    // Tamaño (alto) de los controles de filtro: 'sm' (compacto) o 'default'.
+    // Cada tabla puede sobrescribirlo con: protected ?string $filtersSize = 'sm'|'default';
+    'filter_size' => 'sm',
 ];

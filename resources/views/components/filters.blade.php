@@ -1,51 +1,55 @@
 @if ($filters !== [])
-    <div class="grid w-full gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    @php
+        $filtersSize = $table->filtersSize();
+        $widthClasses = [
+            'sm' => 'sm:col-span-2 xl:col-span-2',
+            'md' => 'sm:col-span-3 xl:col-span-3',
+            'lg' => 'sm:col-span-6 xl:col-span-6',
+            'full' => 'col-span-full',
+        ];
+    @endphp
+    <div class="grid w-full grid-cols-1 gap-3 sm:grid-cols-6 xl:grid-cols-12">
         @foreach ($filters as $filter)
-            <div>
-                <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
-                    {{ $filter->label() }}
-                </label>
+            <flux:field class="{{ $widthClasses[$filter->widthValue()] ?? $widthClasses['md'] }}">
+                <flux:label :class="$filtersSize === 'sm' ? 'text-xs' : null">{{ $filter->label() }}</flux:label>
 
                 @if ($filter->type() === 'select')
-                    <select
+                    <flux:select
+                        variant="listbox"
+                        clearable
+                        :size="$filtersSize"
+                        :searchable="$filter->isSearchable()"
+                        placeholder="{{ $filter->placeholderValue() ?: __('All') }}"
                         wire:model.live="tableFilters.{{ $filter->key() }}"
-                        class="w-full rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 shadow-sm outline-none transition focus:border-zinc-400 dark:focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 dark:focus:ring-zinc-700"
                     >
-                        <option value="">{{ $filter->placeholderValue() ?: __('All') }}</option>
-
                         @foreach ($filter->optionsList() as $value => $label)
-                            <option value="{{ $value }}">{{ $label }}</option>
+                            <flux:select.option value="{{ $value }}">{{ $label }}</flux:select.option>
                         @endforeach
-                    </select>
+                    </flux:select>
                 @elseif ($filter->type() === 'date')
-                    <input
-                        type="date"
+                    <flux:date-picker
+                        clearable
+                        :size="$filtersSize"
                         wire:model.live="tableFilters.{{ $filter->key() }}"
-                        class="w-full rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 shadow-sm outline-none transition focus:border-zinc-400 dark:focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 dark:focus:ring-zinc-700"
                     />
                 @elseif ($filter->type() === 'date-range')
-                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <input
-                            type="date"
-                            wire:model.live="tableFilters.{{ $filter->key() }}.from"
-                            class="w-full rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 shadow-sm outline-none transition focus:border-zinc-400 dark:focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 dark:focus:ring-zinc-700"
-                        />
-
-                        <input
-                            type="date"
-                            wire:model.live="tableFilters.{{ $filter->key() }}.to"
-                            class="w-full rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 shadow-sm outline-none transition focus:border-zinc-400 dark:focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 dark:focus:ring-zinc-700"
-                        />
-                    </div>
+                    <flux:date-picker
+                        mode="range"
+                        clearable
+                        :size="$filtersSize"
+                        :with-presets="$filter->usesPresets()"
+                        :presets="$filter->presetsValue()"
+                        wire:model.live="tableDateRanges.{{ $filter->key() }}"
+                    />
                 @else
-                    <input
-                        type="text"
-                        wire:model.live.debounce.300ms="tableFilters.{{ $filter->key() }}"
+                    <flux:input
+                        clearable
+                        :size="$filtersSize"
                         placeholder="{{ $filter->placeholderValue() ?: $filter->label() }}"
-                        class="w-full rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 shadow-sm outline-none transition focus:border-zinc-400 dark:focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 dark:focus:ring-zinc-700"
+                        wire:model.live.debounce.300ms="tableFilters.{{ $filter->key() }}"
                     />
                 @endif
-            </div>
+            </flux:field>
         @endforeach
     </div>
 @endif

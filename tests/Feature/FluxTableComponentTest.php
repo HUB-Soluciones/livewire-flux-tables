@@ -2,10 +2,13 @@
 
 namespace HubSoluciones\LivewireFluxTables\Tests\Feature;
 
+use Flux\DateRange;
 use HubSoluciones\LivewireFluxTables\Tests\Fixtures\Livewire\UsersTable;
+use HubSoluciones\LivewireFluxTables\Tests\Fixtures\Livewire\UsersTableDefaultFiltersSize;
 use HubSoluciones\LivewireFluxTables\Tests\Fixtures\Livewire\UsersTableStriped;
 use HubSoluciones\LivewireFluxTables\Tests\Fixtures\Models\FixtureUser;
 use HubSoluciones\LivewireFluxTables\Tests\TestCase;
+use HubSoluciones\LivewireFluxTables\Filters\TextFilter;
 use HubSoluciones\LivewireFluxTables\Livewire\FluxTableComponent;
 use HubSoluciones\LivewireFluxTables\Query\QueryPipeline;
 use HubSoluciones\LivewireFluxTables\Rendering\CellRenderer;
@@ -101,6 +104,75 @@ class FluxTableComponentTest extends TestCase
             ->assertDontSee('Ana Gomez');
     }
 
+    public function test_filters_panel_renders_flux_components(): void
+    {
+        Livewire::test(UsersTable::class)
+            ->set('showFilters', true)
+            ->assertSeeHtml('data-flux-field')
+            ->assertSeeHtml('data-flux-select')
+            ->assertSeeHtml('data-flux-date-picker');
+    }
+
+    public function test_date_range_picker_syncs_into_table_filters(): void
+    {
+        Livewire::test(UsersTable::class)
+            ->set('tableDateRanges.created_between', new DateRange('2026-02-01', '2026-02-28'))
+            ->assertSet('tableFilters.created_between.from', '2026-02-01')
+            ->assertSet('tableFilters.created_between.to', '2026-02-28')
+            ->assertSee('Maria Diaz')
+            ->assertSee('Pedro Leon')
+            ->assertDontSee('Ana Gomez');
+    }
+
+    public function test_date_range_preset_syncs_into_table_filters(): void
+    {
+        \Illuminate\Support\Carbon::setTestNow('2026-02-15 12:00:00');
+
+        Livewire::test(UsersTable::class)
+            ->set('tableDateRanges.created_between', DateRange::thisMonth())
+            ->assertSet('tableFilters.created_between.from', '2026-02-01')
+            ->assertSet('tableFilters.created_between.to', '2026-02-28');
+
+        \Illuminate\Support\Carbon::setTestNow();
+    }
+
+    /**
+     * Regression: over the wire, `flux:date-picker mode="range"` delivers a plain
+     * `['start' => ..., 'end' => ..., 'preset' => ...]` array — Livewire has no prior
+     * type metadata for a path that started out `null`, so `Flux\DateRangeSynth` isn't
+     * applied on the way back in and the property never actually becomes a `DateRange`
+     * instance. `dateRangeToFilterState()` must handle that shape directly, not just a
+     * hydrated `DateRange` object (reproduced against the live workbench app, where this
+     * previously threw a `TypeError` and surfaced as a 500 on every preset selection).
+     */
+    public function test_date_range_picker_syncs_from_the_raw_wire_payload_shape(): void
+    {
+        Livewire::test(UsersTable::class)
+            ->set('tableDateRanges.created_between', [
+                'start' => '2026-02-01',
+                'end' => '2026-02-28',
+                'preset' => 'thisMonth',
+            ])
+            ->assertSet('tableFilters.created_between.from', '2026-02-01')
+            ->assertSet('tableFilters.created_between.to', '2026-02-28')
+            ->assertSee('Maria Diaz')
+            ->assertSee('Pedro Leon')
+            ->assertDontSee('Ana Gomez');
+    }
+
+    public function test_date_range_picker_is_hydrated_from_the_url_on_mount(): void
+    {
+        $table = Livewire::withQueryParams([
+            'created_between' => ['from' => '2026-02-01', 'to' => '2026-02-28'],
+        ])->test(UsersTable::class)->instance();
+
+        $range = $table->tableDateRanges['created_between'] ?? null;
+
+        $this->assertInstanceOf(DateRange::class, $range);
+        $this->assertSame('2026-02-01', $range->start()?->format('Y-m-d'));
+        $this->assertSame('2026-02-28', $range->end()?->format('Y-m-d'));
+    }
+
     public function test_sorting_toggles_between_ascending_and_descending(): void
     {
         Livewire::test(UsersTable::class)
@@ -134,6 +206,37 @@ class FluxTableComponentTest extends TestCase
             ->assertSet('sort', 'name')
             ->assertSet('direction', 'desc')
             ->assertSet('perPage', 25);
+    }
+
+    public function test_all_hideable_columns_are_visible_by_default(): void
+    {
+        $fields = array_map(
+            fn (Column $column) => $column->field(),
+            Livewire::test(UsersTable::class)->instance()->visibleColumns,
+        );
+
+        $this->assertSame(['id', 'name', 'email', 'role', 'status', 'created_at'], $fields);
+    }
+
+    public function test_unchecking_a_column_hides_it_from_the_table(): void
+    {
+        $component = Livewire::test(UsersTable::class)
+            ->set('visibleColumnFields', ['id', 'name', 'role', 'status', 'created_at']);
+
+        $fields = array_map(fn (Column $column) => $column->field(), $component->instance()->visibleColumns);
+
+        $this->assertNotContains('email', $fields);
+    }
+
+    public function test_column_visibility_choice_is_remembered_across_a_fresh_mount(): void
+    {
+        Livewire::test(UsersTable::class)
+            ->set('visibleColumnFields', ['id', 'name', 'role', 'status', 'created_at']);
+
+        Livewire::test(UsersTable::class)->assertSet(
+            'visibleColumnFields',
+            ['id', 'name', 'role', 'status', 'created_at'],
+        );
     }
 
     public function test_custom_cell_views_render_inside_table_cells(): void
@@ -298,7 +401,7 @@ class FluxTableComponentTest extends TestCase
     public function test_search_uses_the_full_mobile_toolbar_width(): void
     {
         Livewire::test(UsersTable::class)
-            ->assertSeeHtml('class="relative min-w-0 basis-full sm:basis-auto sm:flex-1 sm:max-w-xs"');
+            ->assertSeeHtml('class="min-w-0 basis-full sm:basis-auto sm:flex-1 sm:max-w-xs"');
     }
 
     public function test_mobile_sort_actions_validate_declared_sortable_fields(): void
@@ -338,61 +441,10 @@ class FluxTableComponentTest extends TestCase
         Column::make('Invalid')->sticky('top');
     }
 
-    public function test_flux_pro_detection_can_be_forced_to_base(): void
+    public function test_flux_table_renderer_compiles(): void
     {
-        config()->set('livewire-flux-tables.flux_tier', 'base');
-
-        $this->assertFalse(Livewire::test(UsersTable::class)->instance()->usesFluxPro());
-    }
-
-    public function test_flux_pro_mode_fails_with_an_actionable_message_when_unavailable(): void
-    {
-        if (\Flux\Flux::pro()) {
-            $this->markTestSkipped('Flux Pro is installed in this test environment.');
-        }
-
-        config()->set('livewire-flux-tables.flux_tier', 'pro');
-
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Flux Pro is required');
-
-        $component = app(UsersTable::class);
-        $component->boot(
-            app(QueryPipeline::class),
-            app(StickyColumnManager::class),
-            app(CellRenderer::class),
-        );
-        $component->mount();
-        $component->usesFluxPro();
-    }
-
-    public function test_flux_table_renderer_compiles_when_pro_is_available(): void
-    {
-        if (! \Flux\Flux::pro()) {
-            $this->markTestSkipped('Flux Pro credentials are not available in this test environment.');
-        }
-
-        config()->set('livewire-flux-tables.flux_tier', 'auto');
-
         Livewire::test(UsersTable::class)
             ->assertSeeHtml('data-flux-table');
-    }
-
-    public function test_invalid_flux_tier_is_rejected(): void
-    {
-        config()->set('livewire-flux-tables.flux_tier', 'enterprise');
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Flux tier must be auto, base, or pro');
-
-        $component = app(UsersTable::class);
-        $component->boot(
-            app(QueryPipeline::class),
-            app(StickyColumnManager::class),
-            app(CellRenderer::class),
-        );
-        $component->mount();
-        $component->usesFluxPro();
     }
 
     public function test_paginator_query_is_reused_throughout_a_render(): void
@@ -419,15 +471,71 @@ class FluxTableComponentTest extends TestCase
         $this->assertStringContainsString('Loading records', $html);
     }
 
-    public function test_base_renderer_uses_flux_table_and_base_components(): void
+    public function test_filter_width_defaults_to_config_value(): void
     {
-        config()->set('livewire-flux-tables.flux_tier', 'base');
+        config()->set('livewire-flux-tables.filter_default_width', 'md');
 
-        Livewire::test(UsersTable::class)
-            ->assertSeeHtml('data-flux-table')
-            ->assertSeeHtml('data-flux-button')
-            ->assertSeeHtml('data-flux-card');
+        $filter = TextFilter::make('Nombre', 'name');
+
+        $this->assertSame('md', $filter->widthValue());
     }
+
+    public function test_filter_width_can_be_overridden_per_filter(): void
+    {
+        $filter = TextFilter::make('Nombre', 'name')->width('lg');
+
+        $this->assertSame('lg', $filter->widthValue());
+    }
+
+    public function test_filter_width_rejects_invalid_values(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        TextFilter::make('Nombre', 'name')->width('huge');
+    }
+
+    public function test_filter_width_shortcuts_set_the_expected_value(): void
+    {
+        $this->assertSame('sm', TextFilter::make('Nombre', 'name')->small()->widthValue());
+        $this->assertSame('md', TextFilter::make('Nombre', 'name')->medium()->widthValue());
+        $this->assertSame('lg', TextFilter::make('Nombre', 'name')->large()->widthValue());
+        $this->assertSame('full', TextFilter::make('Nombre', 'name')->fullWidth()->widthValue());
+    }
+
+    public function test_filters_panel_renders_configured_widths(): void
+    {
+        Livewire::test(UsersTable::class)
+            ->set('showFilters', true)
+            ->assertSeeHtml('xl:col-span-2') // 'sm' width on the Nombre filter
+            ->assertSeeHtml('col-span-full'); // 'full' width on the Periodo filter
+    }
+
+    public function test_filters_size_defaults_to_compact(): void
+    {
+        $component = app(UsersTable::class);
+        $component->boot(
+            app(QueryPipeline::class),
+            app(StickyColumnManager::class),
+            app(CellRenderer::class),
+        );
+        $component->mount();
+
+        $this->assertSame('sm', $component->filtersSize());
+    }
+
+    public function test_filters_size_can_be_overridden_per_component(): void
+    {
+        $component = app(UsersTableDefaultFiltersSize::class);
+        $component->boot(
+            app(QueryPipeline::class),
+            app(StickyColumnManager::class),
+            app(CellRenderer::class),
+        );
+        $component->mount();
+
+        $this->assertNull($component->filtersSize());
+    }
+
 }
 
 class MobileCardsWithSpecialRowKey extends FluxTableComponent
